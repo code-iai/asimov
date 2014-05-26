@@ -9,4 +9,5 @@
                  [compojure "1.1.8"]
                  [necessary-evil "2.0.0"]
                  [aleph "0.3.2"]
-                 [gloss "0.2.2"]])
+                 [gloss "0.2.2"]
+                 [pandect "0.3.2"]])
