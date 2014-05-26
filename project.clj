@@ -7,6 +7,6 @@
                  [org.clojure/core.async "0.1.303.0-886421-alpha"]
                  [ring "1.2.2"]
                  [compojure "1.1.8"]
-                 [http-kit "2.1.16"]
                  [necessary-evil "2.0.0"]
+                 [aleph "0.3.2"]
                  [gloss "0.2.2"]])
