@@ -9,9 +9,8 @@
    " S = (field <#'[\\n ]'*>)*
      field = type <' '>* name
      name = #'[a-zA-Z_-]'*
-     type = type <'[]'>
+     type = primitive-type | array-type | msg-type
      array-type = type <'[]'>
-     type = primitive-type | msg-type 
      msg-type = (name <'/'>)+ name
      primitive-type = 'bool' | 'int8' | 'uint8' | 'int16' | 'uint16' | 'int32' | 'uint32' | 'int64' | 'uint64' | 'float32' | 'float64' | 'string' | 'time' | 'duration'
 "))
