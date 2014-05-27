@@ -1,5 +1,6 @@
 (ns asimov.messages
-  (:require [instaparse.core :as insta]))
+  (:require [instaparse.core :as insta]
+            [midje.sweet :as midje]))
 
 (def msg-parser
   (insta/parser
@@ -10,19 +11,21 @@
      tuple-field = type <'['>#'[0-9]+'<']'> <whitespace> field-name
      list-field = type <'[]'> <whitespace> field-name
      constant = numeric-constant | string-constant | bool-constant
-     <numeric-constant> = numeric-type <whitespace> field-name <whitespace?> <'='> <whitespace?> numeric-lit
+     <numeric-constant> = int-constant | float-constant
+     <int-constant>     = int-type <whitespace> field-name <whitespace?> <'='> <whitespace?> int-lit
+     <float-constant>   = float-type <whitespace> field-name <whitespace?> <'='> <whitespace?> float-lit
      <string-constant>  = string-type  <whitespace> field-name <whitespace?> <'='> <whitespace?> string-lit
      <bool-constant>    = bool-type    <whitespace> field-name <whitespace?> <'='> <whitespace?> bool-lit
      <type> = primitive-type | msg-type
-     <primitive-type> = numeric-type | string-type | bool-type | time-type
+     <primitive-type> = int-type | float-type | string-type | bool-type | time-type
      <bool-type> = 'bool'
-     <numeric-type> = 'int8' | 'uint8' | 'int16' | 'uint16' | 'int32' | 'uint32' | 'int64' | 'uint64' | 'float32' | 'float64'
+     <int-type> = 'int8' | 'uint8' | 'int16' | 'uint16' | 'int32' | 'uint32' | 'int64' | 'uint64'
+     <float-type> = 'float32' | 'float64'
      <string-type> = 'string'
      <time-type> =  'time' | 'duration'
      <field-name> = #'[a-zA-Z][a-zA-Z1-9_]*'
      msg-type = #'[a-zA-Z]' #'[0-9a-zA-Z_]*' ('/' #'[0-9a-zA-Z_]*')?
-     <numeric-lit> = double-lit | int-lit
-     double-lit = #'[-+]?[0-9]*.?[0-9]+([eE][-+]?[0-9]+)?'
+     float-lit = #'[-+]?[0-9]*.?[0-9]+([eE][-+]?[0-9]+)?'
      int-lit = #'[-+]?[0-9]*'
      string-lit = #'((?=\\S).*\\S)'?
      bool-lit = 'true' | 'false'
@@ -68,8 +71,8 @@
       msg-parser
       transform-parse))
 
-(midje/tabular "Different message parts."fjkdlaöfkldjöflkadjf
-   (midje/fact (parse ?msg) => ?res)
+(midje/tabular "Different message parts."
+   (midje/fact (parse-message ?msg) => ?res)
    ?msg                                            ?res
    "# Data"                                        []
    "int32 id"                                      [{:type "int32"  :name "id"}]
@@ -81,19 +84,25 @@
    "string EXAMPLE=\"#comments\" are ignored"      [{:type "string" :name "EXAMPLE"     :value "\"#comments\" are ignored"}]
    "string EXAMPLE=  \t border wspace removed \t " [{:type "string" :name "EXAMPLE"     :value "border wspace removed"}])
 
-;;Status: variable and constant fields are recognized
-;;TODO: - more type checking
-;;      - what about time and duration literals?
-;;      - check sanity of parse-result format
-;;      - add midje tests
+(midje/fact
+  (parse-message (slurp "https://github.com/ros/common_msgs/raw/indigo-devel/geometry_msgs/msg/PoseWithCovariance.msg"))
+   =>
+  [{:type "Pose" :name "pose"}
+   {:type "float64" :arity 36 :name "covariance"}])
 
-;;(parse-message "bool a=true\n dasgeht/auch[][] b")
-;;=> [{:tag :asimov.messages/constant, :type "bool",
-;;     :name "a", :value true}
-;;    {:tag :asimov.messages/variable,
-;;     :type {:array {:array "dasgeht/auch"}}, :name "b"}]
-
-;;(parse-message "string stringliteralsarescary=everything until newline is recignized#\"!\"'\"'\"'''\"'\"'\"'''######")
-;;[{:tag :asimov.messages/constant, :type "string",
-;; :name "stringliteralsarescary",
-;; :value "everything until newline is recignized#\"!\"'\"'\"'''\"'\"'\"'''######"}]
+(midje/fact
+ (parse-message (slurp "https://raw.githubusercontent.com/ros/common_msgs/indigo-devel/actionlib_msgs/msg/GoalStatus.msg"))
+ =>
+ [{:type "GoalID" :name "goal_id"}
+  {:type "uint8" :name "status"}
+  {:type "uint8" :name "PENDING" :value 0}
+  {:type "uint8" :name "ACTIVE" :value 1}
+  {:type "uint8" :name "PREEMPTED" :value 2}
+  {:type "uint8" :name "SUCCEEDED" :value 3}
+  {:type "uint8" :name "ABORTED" :value 4}
+  {:type "uint8" :name "REJECTED" :value 5}
+  {:type "uint8" :name "PREEMPTING" :value 6}
+  {:type "uint8" :name "RECALLING" :value 7}
+  {:type "uint8" :name "RECALLED" :value 8}
+  {:type "uint8" :name "LOST" :value 9}
+  {:type "string" :name "text"}])
