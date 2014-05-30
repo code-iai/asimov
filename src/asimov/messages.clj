@@ -34,7 +34,7 @@
      whitespace = #'[^\\S\\r\\n]'+
 "))
 
-(defn- primitive-type [name]
+(defn primitive-type [name]
   {:tag :primitive
    :name name})
 
@@ -117,6 +117,18 @@
   {:tag :constant :type {:tag :primitive :name "uint8"} :name "LOST" :value 9}
   {:tag :variable :type {:tag :primitive :name "string"} :name "text"}])
 
+(defn canonical-msg [msg msgs]
+  nil)
+
+(defn unparse-msg [msg]
+  nil)
+
+(defn msg-checksum [msg msgs]
+  (-> msg
+      canonical-msg
+      unparse-msg
+      hsh/md5))
+
 (defn- find-cycles [cur {:keys [seen root stack graph] :as state}]
   (first (filter identity (for [c (remove seen cur)]
                             (if (= c root)
@@ -131,11 +143,8 @@
                  :let [stack (find-cycles deps {:seen #{} :stack [root] :graph graph :root root})]]
              stack)))
 
-(defn- canonical-msg [msg]
-  nil)
-
-(defn msg-checksum [msg]
-  (-> msg
-      parse-msg
-      canonical-msg
-      hsh/md5))
+(defn load-msgs [root]
+  (let [msgs (->> root
+                 file-seq
+                 (filter #(.isFile %))
+                 (filter #(re-matches #"" %)))]))
