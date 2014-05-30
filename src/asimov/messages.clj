@@ -143,8 +143,15 @@
                  :let [stack (find-cycles deps {:seen #{} :stack [root] :graph graph :root root})]]
              stack)))
 
+(defn msg-path [path]
+  (if-let [[_ package message] (re-matches #".*([a-zA-Z][0-9a-zA-Z_]*)/msg/([0-9a-zA-Z_]+)\.msg" path)]
+    {:package package
+     :name message}))
+
+(fact)
+
 (defn load-msgs [root]
   (let [msgs (->> root
                  file-seq
                  (filter #(.isFile %))
-                 (filter #(re-matches #"" %)))]))
+                 (filter ))]))
