@@ -1,4 +1,5 @@
 (defproject asimov "0.1.0-SNAPSHOT"
+  :jvm-opts ["-XX:-OmitStackTraceInFastThrow"]
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
@@ -13,4 +14,5 @@
                  [pandect "0.3.2"]
                  [instaparse "1.3.2"]
                  [midje "1.6.3"]
-                 [slingshot "0.10.3"]])
+                 [slingshot "0.10.3"]]
+  :plugins [[lein-marginalia "0.7.1"]])
