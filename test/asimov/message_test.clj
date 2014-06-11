@@ -201,7 +201,7 @@ float64[36] covariance
   :name "ImageMarker"})
 
 (fact
- (-> "resources/common_msgs"
+ (-> "resources/msgs"
      clojure.java.io/file
      msgs-in-dir)
  =>
@@ -353,7 +353,7 @@ float64[36] covariance
                :name "car"}]}}))
 
 (fact
- (-> "resources/common_msgs"
+ (-> "resources/msgs"
      clojure.java.io/file
      load-msgs)
  =>
