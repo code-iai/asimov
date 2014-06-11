@@ -1,5 +1,6 @@
 (ns asimov.messages
-  (:require [asimov.util :as util]
+  (:require [clojure.set :as set]
+            [asimov.util :as util]
             [instaparse.core :as insta]
             [pandect.core :as hsh]
             [slingshot.slingshot :as ss]))
@@ -41,6 +42,13 @@
   {:tag :primitive
    :name (keyword name)})
 
+(defn- ^{:testable true} literal
+  "Tags the given type as primitive and turns it into a keyword."
+  [f]
+  (fn [raw]
+    {:raw raw
+     :read (f raw)}))
+
 (defn- ^{:testable true} transform-parse
   "Transforms the parse tree of a message into a workable list of declarations."
   [parse-res]
@@ -73,10 +81,10 @@
     :string-type primitive-type
     :bool-type primitive-type
     :time-type primitive-type
-    :double-lit #(Double/parseDouble %)
-    :int-lit #(Integer/parseInt %)
-    :bool-lit (fn [bl] (case bl "true" true "false" false))
-    :string-lit str
+    :double-lit (literal #(Double/parseDouble %))
+    :int-lit (literal #(Integer/parseInt %))
+    :bool-lit (literal (fn [bl] (case bl "true" true "false" false)))
+    :string-lit (literal str)
     :msg-type (fn [&[f s]] {:tag :message
                             :package (when s f)
                             :name (or s f)})}
@@ -96,22 +104,24 @@
 
 (defn- ^{:testable true} annotate-declarations
   "Parses the given message and returns a
-   list of its declarations."
-  [{:keys [package raw] :as msg}]
-  (let [declarations (->> raw
-                          msg-parser
-                          transform-parse
-                          (make-packages-explicit package))]
-    (assoc msg :declarations declarations)))
+  list of its declarations."
+  [msgs]
+  (for [{:keys [package raw] :as msg} msgs
+        :let [declarations (->> raw
+                                 msg-parser
+                                 transform-parse
+                                 (make-packages-explicit package))]]
+        (assoc msg :declarations declarations)))
 
 (defn- ^{:testable true} annotate-dependencies
   "Annotates the set of other messages required by this message."
-  [{:keys [declarations] :as msg}]
-  (let [dependencies (->> declarations
-                          (map :type)
-                          (filter #(#{:message} (:tag %)))
-                          (map #(select-keys % [:package :name]))
-                          (into #{}))]
+  [msgs]
+  (for [{:keys [declarations] :as msg} msgs
+        :let [dependencies (->> declarations
+                            (map :type)
+                            (filter #(#{:message} (:tag %)))
+                            (map #(select-keys % [:package :name]))
+                            (into #{}))]]
     (assoc msg :dependencies dependencies)))
 
 (defn- ^{:testable true} parse-path [path]
@@ -153,17 +163,73 @@
 
 (defn- ^{:testable true} ensure-nocycles [msgs]
   (if-let [c (not-empty (util/cycles (dep-graph msgs)))]
-    (ss/throw+ {:tag ::circular-msg :cycles c} "Can't load circular message definitions!")
+    (ss/throw+ {:tag ::circular-msg :cycles c}
+               "Can't load circular message definitions!")
     msgs))
 
-(defn- ^{:testable true} annotate-all-md5s [msgs]
-  nil)
+(defn- serealize-declaration [d msgs]
+  (cond = (juxt :tag (comp :tag :type))
+    [:constant :primitive]
+    (format "%s %s=%s\n"
+            (-> d :type :name name)
+            (:name d)
+            (-> d :value :raw))
+    [:variable :primitive]
+    (format "%s %s\n"
+            (-> d :type :name name)
+            (:name d))
+    [:tuple :primitive]
+    (format "%s[%s] %s\n"
+            (-> d :type :name name)
+            (:arity d)
+            (:name d))
+    [:list :primitive]
+    (format "%s[] %s\n"
+            (-> d :type :name name)
+            (:name d))
+    [:variable :message]
+    (format "%s %s\n"
+            (get-in msgs [(select-keys [:name :package] (:type d)) :md5])
+            (:name d))
+    [:tuple :message]
+    (format "%s %s\n"
+            (get-in msgs [(select-keys [:name :package] (:type d)) :md5])
+            (:name d))
+    [:list :message]
+    (format "%s %s\n"
+            (get-in msgs [(select-keys [:name :package] (:type d)) :md5])
+            (:name d))))
+
+(defn- ^{:testable true} annotate-md5 [msg deps]
+  (let [constant? #(= :constant (:tag %))
+        decs (:declarations msg)
+        reordered (concat (filter constant? decs)
+                          (remove constant? decs))
+        text (->> reordered
+                  (map serealize-declaration)
+                  (apply str))
+        md5 (hsh/md5 text)]
+    (assoc msg :md5 md5)))
+
+(defn- ^{:testable true} annotate-md5s [msgs]
+  (loop [annotated {}
+         fresh (into #{} msgs)]
+    (if (empty? fresh)
+      (vals annotated)
+      (let [msg (some #(set/subset? (:dependencies %)
+                                    (set (keys annotated)))
+                      fresh)
+            amsg (annotate-md5 msg annotated)
+            asmg-name (select-keys [:name :package] amsg)]
+        (recur (assoc annotated
+                 asmg-name amsg)
+               (disj fresh msg))))))
 
 (defn load-msgs [root]
   (->> root
        msgs-in-dir
-       (mapv annotate-declarations)
-       (mapv annotate-dependencies)
+       annotate-declarations
+       annotate-dependencies
        ensure-nocycles
        ensure-complete-dependencies
-       annotate-all-md5s))
+       annotate-md5s))

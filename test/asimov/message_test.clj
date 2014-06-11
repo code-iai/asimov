@@ -12,33 +12,17 @@
  (make-packages-explicit
   ...pkg...
   [{:tag :variable
-    :type {:tag :primitive
-           :name :int32}
-    :name "id"}
+   :type {:tag :message
+          :package "geometry_msgs"
+          :name "PoseStamped"}
+   :name "value_posestamped"}
    {:tag :variable
     :type {:tag :message
-           :package "geometry_msgs"
+           :package nil
            :name "PoseStamped"}
-    :name "value_posestamped"}
-   {:tag :variable
-    :type {:tag :message :package nil
-           :name "PoseStamped"}
-    :name "value_posestamped"}
-   {:tag :constant
-    :type {:tag :primitive :name :int32}
-    :name "TYPE_STRING"
-    :value 0}
-   {:tag :constant
-    :type {:tag :primitive
-           :name :string}
-    :name "EXAMPLE"
-    :value "border wspace removed"}])
+    :name "value_posestamped"}])
  =>
  [{:tag :variable
-   :type {:tag :primitive
-          :name :int32}
-   :name "id"}
-  {:tag :variable
    :type {:tag :message
           :package "geometry_msgs"
           :name "PoseStamped"}
@@ -47,28 +31,19 @@
    :type {:tag :message
           :package ...pkg...
           :name "PoseStamped"}
-   :name "value_posestamped"}
-  {:tag :constant
-   :type {:tag :primitive
-          :name :int32}
-   :name "TYPE_STRING"
-   :value 0}
-  {:tag :constant
-   :type {:tag :primitive
-          :name :string}
-   :name "EXAMPLE"
-   :value "border wspace removed"}])
+   :name "value_posestamped"}])
 
 (tabular
  "Different message parts."
  (fact
   (annotate-declarations
-   {:name ...name...
+   [{:name ...name...
     :package ...pkg...
-    :raw ?raw})
+    :raw ?raw}])
   =>
   (contains
-   {:declarations ?res}))
+   [(contains
+   {:declarations ?res})]))
  ?raw ?res
  "# Data"
  []
@@ -110,23 +85,26 @@
    :type {:tag :primitive
           :name :int32}
    :name "TYPE_STRING"
-   :value 0}]
+   :value {:raw "0"
+           :read 0}}]
  "string EXAMPLE=\"#comments\" are ignored"
  [{:tag :constant
    :type {:tag :primitive
           :name :string}
    :name "EXAMPLE"
-   :value "\"#comments\" are ignored"}]
+   :value {:raw "\"#comments\" are ignored"
+           :read "\"#comments\" are ignored"}}]
  "string EXAMPLE=  \t border wspace removed \t "
  [{:tag :constant
    :type {:tag :primitive
           :name :string}
    :name "EXAMPLE"
-   :value "border wspace removed"}])
+   :value {:raw "border wspace removed"
+           :read "border wspace removed"}}])
 
 (fact
  (annotate-declarations
-  {:package "common_msgs"
+  [{:package "common_msgs"
    :name "PoseWithCovariance"
    :raw
 "# This represents a pose in free space with uncertainty.
@@ -138,9 +116,10 @@ Pose pose
 # In order, the parameters are:
 # (x, y, z, rotation about X axis, rotation about Y axis, rotation about Z axis)
 float64[36] covariance
-"})
+"}])
  =>
  (contains
+  [(contains
   {:declarations
    [{:tag :variable
      :type {:tag :message
@@ -151,11 +130,11 @@ float64[36] covariance
      :type {:tag :primitive
             :name :float64}
      :arity 36
-     :name "covariance"}]}))
+     :name "covariance"}]})]))
 
 (fact
  (annotate-dependencies
-  {:declarations
+  [{:declarations
    [{:tag :variable
      :type {:tag :primitive
             :name :int8}
@@ -177,17 +156,21 @@ float64[36] covariance
     {:tag :tuple
      :type {:tag :primitive
             :name :uint8}
-     :name "value_data"  :arity 4}
+     :name "value_data"
+     :arity 4}
     {:tag :constant
      :type {:tag :primitive
             :name :int32}
-     :name "TYPE_STRING" :value 0}]})
+     :name "TYPE_STRING"
+     :value {:raw "0"
+             :read 0}}]}])
  =>
  (contains
+  [(contains
   {:dependencies #{{:package "geometry_msgs"
                     :name "PoseStamped"}
                    {:package nil
-                    :name "PoseStamped"}}}))
+                    :name "PoseStamped"}}})]))
 
 (tabular
  (fact (parse-path ?path) => ?res)
@@ -369,7 +352,7 @@ float64[36] covariance
               {:package "vehicle",
                :name "car"}]}}))
 
-#_(fact
+(fact
  (-> "resources/common_msgs"
      clojure.java.io/file
      load-msgs)
@@ -392,25 +375,93 @@ float64[36] covariance
      :md5 "c23e848cf1b7533a8d7c259073a97e6f"
      :dependencies #{{:package "geometry_msgs":name "Pose"}}
      :declarations
-     [{:tag :variable :type {:tag :message :package nil :name "Pose"} :name "pose"}
-      {:tag :tuple :type {:tag :primitive :name :float64} :arity 36 :name "covariance"}]})
+     [{:tag :variable
+       :type {:tag :message
+                             :package "geometry_msgs"
+                             :name "Pose"} :name "pose"}
+      {:tag :tuple
+       :type {:tag :primitive
+              :name :float64}
+       :arity 36
+       :name "covariance"}]})
    (contains
     {:name "GoalStatus"
      :package "actionlib_msgs"
      :md5 "d388f9b87b3c471f784434d671988d4a"
-     :dependencies #{{:package "actionlib_msgs" :name "GoalID"}}
+     :dependencies #{{:package "actionlib_msgs"
+                      :name "GoalID"}}
      :declarations
-     [{:tag :variable :type {:tag :message :package "actionlib_msgs" :name "GoalID"} :name "goal_id"}
-      {:tag :variable :type {:tag :primitive :name :uint8} :name "status"}
-      {:tag :constant :type {:tag :primitive :name :uint8} :name "PENDING" :value 0}
-      {:tag :constant :type {:tag :primitive :name :uint8} :name "ACTIVE" :value 1}
-      {:tag :constant :type {:tag :primitive :name :uint8} :name "PREEMPTED" :value 2}
-      {:tag :constant :type {:tag :primitive :name :uint8} :name "SUCCEEDED" :value 3}
-      {:tag :constant :type {:tag :primitive :name :uint8} :name "ABORTED" :value 4}
-      {:tag :constant :type {:tag :primitive :name :uint8} :name "REJECTED" :value 5}
-      {:tag :constant :type {:tag :primitive :name :uint8} :name "PREEMPTING" :value 6}
-      {:tag :constant :type {:tag :primitive :name :uint8} :name "RECALLING" :value 7}
-      {:tag :constant :type {:tag :primitive :name :uint8} :name "RECALLED" :value 8}
-      {:tag :constant :type {:tag :primitive :name :uint8} :name "LOST" :value 9}
-      {:tag :variable :type {:tag :primitive :name :string} :name "text"}]})]
+     [{:tag :variable
+       :type {:tag :message
+              :package "actionlib_msgs"
+              :name "GoalID"}
+       :name "goal_id"}
+      {:tag :variable
+       :type {:tag :primitive
+              :name :uint8}
+       :name "status"}
+      {:tag :constant
+       :type {:tag :primitive
+              :name :uint8}
+       :name "PENDING"
+       :value {:raw "0"
+               :read 0}}
+      {:tag :constant
+       :type {:tag :primitive
+              :name :uint8}
+       :name "ACTIVE"
+       :value {:raw "1"
+               :read 1}}
+      {:tag :constant
+       :type {:tag :primitive
+              :name :uint8}
+       :name "PREEMPTED"
+       :value {:raw "2"
+               :read 2}}
+      {:tag :constant
+       :type {:tag :primitive
+              :name :uint8}
+       :name "SUCCEEDED"
+       :value {:raw "3"
+               :read 3}}
+      {:tag :constant
+       :type {:tag :primitive
+              :name :uint8}
+       :name "ABORTED"
+       :value {:raw "4"
+               :read 4}}
+      {:tag :constant
+       :type {:tag :primitive
+              :name :uint8}
+       :name "REJECTED"
+       :value {:raw "5"
+               :read 5}}
+      {:tag :constant
+       :type {:tag :primitive
+              :name :uint8}
+       :name "PREEMPTING"
+       :value {:raw "6"
+               :read 6}}
+      {:tag :constant
+       :type {:tag :primitive
+              :name :uint8}
+       :name "RECALLING"
+       :value {:raw "7"
+               :read 7}}
+      {:tag :constant
+       :type {:tag :primitive
+              :name :uint8}
+       :name "RECALLED"
+       :value {:raw "8"
+               :read 8}}
+      {:tag :constant
+       :type {:tag :primitive
+              :name :uint8}
+       :name "LOST"
+       :value {:raw "9"
+               :read 9}}
+      {:tag :variable
+       :type {:tag :primitive
+              :name :string}
+       :name "text"}]})]
   :in-any-order :gaps-ok))
