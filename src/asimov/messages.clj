@@ -22,7 +22,8 @@
    <type> = primitive-type / msg-type
    <primitive-type> = int-type | float-type | string-type | bool-type | time-type
    bool-type = 'bool'
-   int-type = 'int8' | 'uint8' | 'int16' | 'uint16' | 'int32' | 'uint32' | 'int64' | 'uint64'
+   int-type = 'int8' | 'uint8' | 'int16' | 'uint16' | 'int32' | 'uint32' | 'int64' | 'uint64' | deprecated-int-type
+   <deprecated-int-type> = 'byte' | 'char'
    float-type = 'float32' | 'float64'
    string-type = 'string'
    time-type =  'time' | 'duration'
