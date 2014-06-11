@@ -98,8 +98,13 @@
   package name with them."
   [package declarations]
   (mapv (fn [d]
-          (if (= :message (get-in d [:type :tag]))
-            (update-in d [:type :package] #(or % package))
+          (if (= :message (-> d :type :tag))
+            (update-in d
+                       [:type :package]
+                       #(cond
+                         (= "Header" (-> d :type :name)) "std_msgs"
+                         (nil? %) package
+                         :else %))
             d))
         declarations))
 
