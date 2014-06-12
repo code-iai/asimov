@@ -3,11 +3,12 @@
             [asimov.util :as util]
             [instaparse.core :as insta]
             [pandect.core :as hsh]
-            [slingshot.slingshot :as ss]))
+            [slingshot.slingshot :as ss]
+            [taoensso.timbre :as t]))
 
 (def msg-parser
   (insta/parser
-   " S = {declaration? <whitespace? comment? ('\\n' | #'\\z')>}
+   " S = {<whitespace?> declaration? <whitespace? comment? ('\\n' | #'\\z')>}
    <declaration> = field | constant
    <field> = unary-field | tuple-field | list-field
    unary-field = type <whitespace> field-name
@@ -108,6 +109,12 @@
             d))
         declarations))
 
+(defn- ^{:testable true} check-errors [msg p]
+  (if (insta/failure? p)
+    (do (t/error "Could not parse message!\n" (insta/get-failure p))
+        (ss/throw+ {:msg msg :error (insta/get-failure p)} "Error while parsing msg!"))
+    p))
+
 (defn- ^{:testable true} annotate-declarations
   "Parses the given message and returns a
   list of its declarations."
@@ -115,6 +122,7 @@
   (for [{:keys [package raw] :as msg} msgs
         :let [declarations (->> raw
                                  msg-parser
+                                 (check-errors msg)
                                  transform-parse
                                  (make-packages-explicit package))]]
         (assoc msg :declarations declarations)))
@@ -174,59 +182,69 @@
     msgs))
 
 (defn- serealize-declaration [d msgs]
-  (cond = (juxt :tag (comp :tag :type))
+  (condp = [(:tag d) (-> d :type :tag)]
     [:constant :primitive]
-    (format "%s %s=%s\n"
+    (format "%s %s=%s"
             (-> d :type :name name)
             (:name d)
             (-> d :value :raw))
     [:variable :primitive]
-    (format "%s %s\n"
+    (format "%s %s"
             (-> d :type :name name)
             (:name d))
     [:tuple :primitive]
-    (format "%s[%s] %s\n"
+    (format "%s[%s] %s"
             (-> d :type :name name)
             (:arity d)
             (:name d))
     [:list :primitive]
-    (format "%s[] %s\n"
+    (format "%s[] %s"
             (-> d :type :name name)
             (:name d))
     [:variable :message]
-    (format "%s %s\n"
-            (get-in msgs [(select-keys [:name :package] (:type d)) :md5])
+    (format "%s %s"
+            (get-in msgs [(select-keys (:type d) [:name :package]) :md5])
             (:name d))
     [:tuple :message]
-    (format "%s %s\n"
-            (get-in msgs [(select-keys [:name :package] (:type d)) :md5])
+    (format "%s %s"
+            (get-in msgs [(select-keys (:type d) [:name :package]) :md5])
             (:name d))
     [:list :message]
-    (format "%s %s\n"
-            (get-in msgs [(select-keys [:name :package] (:type d)) :md5])
-            (:name d))))
+    (format "%s %s"
+            (get-in msgs [(select-keys (:type d) [:name :package]) :md5])
+            (:name d))
+    (println d)))
 
-(defn- ^{:testable true} annotate-md5 [msg deps]
+(defn- ^{:testable true} md5-text [msg msgs]
   (let [constant? #(= :constant (:tag %))
         decs (:declarations msg)
         reordered (concat (filter constant? decs)
-                          (remove constant? decs))
-        text (->> reordered
-                  (map serealize-declaration)
-                  (apply str))
+                          (remove constant? decs))]
+    (->> reordered
+         (map #(serealize-declaration % msgs))
+         (interpose "\n")
+         (apply str))))
+
+(defn- ^{:testable true} annotate-md5 [msg msgs]
+  (let [text (md5-text msg msgs)
         md5 (hsh/md5 text)]
     (assoc msg :md5 md5)))
 
+;TODO: This is stupid code, when it failure=nontermination.
+;Replace it with something that creates a dependency tree,
+;and then flattens it out, then do a simple reduce.
+;Alternatively use an step limited iteration aproach.
 (defn- ^{:testable true} annotate-md5s [msgs]
   (loop [annotated {}
          fresh (into #{} msgs)]
     (if (empty? fresh)
       (vals annotated)
-      (let [msg (some #(set/subset? (:dependencies %)
+      (let [msg (some #(when (set/subset? (:dependencies %)
                                     (set (keys annotated)))
+                         %)
                       fresh)
             amsg (annotate-md5 msg annotated)
-            asmg-name (select-keys [:name :package] amsg)]
+            asmg-name (select-keys amsg [:name :package])]
         (recur (assoc annotated
                  asmg-name amsg)
                (disj fresh msg))))))
