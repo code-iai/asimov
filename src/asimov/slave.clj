@@ -1,5 +1,6 @@
 (ns asimov.slave
   (:use [lamina.core]
+        [asimov.configuration]
         [aleph.http])
   (:require
    [compojure
@@ -14,13 +15,15 @@
   (xml-rpc/end-point
    {:getBusStats        TODO
     :getBusInfo         TODO
-    :getMasterUri       TODO
+    :getMasterUri       (fn [caller_id] (cfg :master-uri))
     :shutdown           TODO
     :getPid             TODO
-    :getSubscriptions   TODO
-    :getPublications    TODO
+    :getSubscriptions   (fn [caller_id] (cfg :subscriptions))
+    :getPublications    (fn [caller_id] (cfg :publications))
     :paramUpdate        TODO
-    :publisherUpdate    TODO
+    :publisherUpdate    (fn [caller_id topic publishers]
+                          (assoc-in @configuration
+                                    [:subscriptions topic] publishers))
     :requestTopic       TODO}))
 (alter-var-root #'*out* (constantly *out*))
 
