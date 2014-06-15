@@ -16,14 +16,16 @@
    list-field = type <'[]'> <whitespace> field-name
    constant = numeric-constant | string-constant | bool-constant
    <numeric-constant> = int-constant | float-constant
-   <int-constant>     = int-type <whitespace> field-name <whitespace?> <'='> <whitespace?> int-lit
-   <float-constant>   = float-type <whitespace> field-name <whitespace?> <'='> <whitespace?> float-lit
-   <string-constant>  = string-type  <whitespace> field-name <whitespace?> <'='> <whitespace?> string-lit
-   <bool-constant>    = bool-type    <whitespace> field-name <whitespace?> <'='> <whitespace?> bool-lit
+   <assign> = <whitespace> field-name <whitespace? '=' whitespace?>
+   <int-constant>     = int-type assign int-lit
+   <float-constant>   = float-type assign float-lit
+   <string-constant>  = string-type assign  string-lit
+   <bool-constant>    = bool-type assign bool-lit
    <type> = primitive-type / msg-type
    <primitive-type> = int-type | float-type | string-type | bool-type | time-type
    bool-type = 'bool'
-   int-type = 'int8' | 'uint8' | 'int16' | 'uint16' | 'int32' | 'uint32' | 'int64' | 'uint64' | deprecated-int-type
+   int-type = 'int8' | 'uint8' | 'int16' | 'uint16' | 'int32' | 'uint32' |
+              'int64' | 'uint64' | deprecated-int-type
    <deprecated-int-type> = 'byte' | 'char'
    float-type = 'float32' | 'float64'
    string-type = 'string'
@@ -38,20 +40,20 @@
    whitespace = #'[^\\S\\r\\n]'+
    "))
 
-(defn- ^{:testable true} primitive-type
+(defn primitive-type
   "Tags the given type as primitive and turns it into a keyword."
   [name]
   {:tag :primitive
    :name (keyword name)})
 
-(defn- ^{:testable true} literal
+(defn literal
   "Tags the given type as primitive and turns it into a keyword."
   [f]
   (fn [raw]
     {:raw raw
      :read (f raw)}))
 
-(defn- ^{:testable true} transform-parse
+(defn transform-parse
   "Transforms the parse tree of a message into a workable list of declarations."
   [parse-res]
   (insta/transform
@@ -88,11 +90,11 @@
     :bool-lit (literal (fn [bl] (case bl "true" true "false" false)))
     :string-lit (literal str)
     :msg-type (fn [&[f s]] {:tag :message
-                            :package (when s f)
-                            :name (or s f)})}
+                           :package (when s f)
+                           :name (or s f)})}
    parse-res))
 
-(defn- ^{:testable true} make-packages-explicit
+(defn make-packages-explicit
   "Takes all declarations that contain a
   message reference without an explicit
   package name and associates the provided
@@ -109,59 +111,59 @@
             d))
         declarations))
 
-(defn- ^{:testable true} check-errors [msg p]
+(defn check-errors [msg p]
   (if (insta/failure? p)
     (do (t/error "Could not parse message!\n" (insta/get-failure p))
         (ss/throw+ {:msg msg :error (insta/get-failure p)} "Error while parsing msg!"))
     p))
 
-(defn- ^{:testable true} annotate-declarations
+(defn annotate-declarations
   "Parses the given message and returns a
   list of its declarations."
   [msgs]
-  (for [{:keys [package raw] :as msg} msgs
-        :let [declarations (->> raw
-                                 msg-parser
-                                 (check-errors msg)
-                                 transform-parse
-                                 (make-packages-explicit package))]]
-        (assoc msg :declarations declarations)))
+  (into #{} (for [{:keys [package raw] :as msg} msgs
+             :let [declarations (->> raw
+                                     msg-parser
+                                     (check-errors msg)
+                                     transform-parse
+                                     (make-packages-explicit package))]]
+         (assoc msg :declarations declarations))))
 
-(defn- ^{:testable true} annotate-dependencies
+(defn annotate-dependencies
   "Annotates the set of other messages required by this message."
   [msgs]
-  (for [{:keys [declarations] :as msg} msgs
-        :let [dependencies (->> declarations
-                            (map :type)
-                            (filter #(#{:message} (:tag %)))
-                            (map #(select-keys % [:package :name]))
-                            (into #{}))]]
-    (assoc msg :dependencies dependencies)))
+  (into #{} (for [{:keys [declarations] :as msg} msgs
+             :let [dependencies (->> declarations
+                                     (map :type)
+                                     (filter #(#{:message} (:tag %)))
+                                     (map #(select-keys % [:package :name]))
+                                     distinct
+                                     (into []))]]
+         (assoc msg :dependencies dependencies))))
 
-(defn- ^{:testable true} parse-path [path]
+(defn parse-path [path]
   (when-let [[_ package message]
              (re-matches #".*?([a-zA-Z][0-9a-zA-Z_]*)/msg/([0-9a-zA-Z_]+)\.msg"
                          path)]
     {:package package
      :name message}))
 
-(defn- ^{:testable true} msgs-in-dir [root]
+(defn msgs-in-dir [root]
   (->> root
        file-seq
        (filter #(.isFile %))
        (map (fn [f] (when-let [id (parse-path (.getCanonicalPath f))]
-                      (assoc id :raw (slurp f)))))
+                     (assoc id :raw (slurp f)))))
        (remove nil?)))
 
-(defn- ^{:testable true} dep-graph [msgs]
+(defn dep-graph [msgs]
   (into {} (map (fn [msg]
                   [(select-keys msg [:name :package])
-                   (:dependencies msg)]) msgs)))
+                   (into #{} (:dependencies msg))]) msgs)))
 
-(defn- ^{:testable true} ensure-complete-dependencies [msgs]
+(defn ensure-complete-dependencies [msgs]
   (let [dg (dep-graph msgs)
-        found-msgs (into #{}
-                         (keys dg))]
+        found-msgs (into #{} (keys dg))]
     (if-let [missing-deps (->> dg
                                (map (fn [[msg deps]]
                                       [msg (clojure.set/difference
@@ -175,7 +177,7 @@
                  "Missing dependencies!")
       msgs)))
 
-(defn- ^{:testable true} ensure-nocycles [msgs]
+(defn ensure-nocycles [msgs]
   (if-let [c (not-empty (util/cycles (dep-graph msgs)))]
     (ss/throw+ {:tag ::circular-msg :cycles c}
                "Can't load circular message definitions!")
@@ -215,7 +217,7 @@
             (:name d))
     (println d)))
 
-(defn- ^{:testable true} md5-text [msg msgs]
+(defn md5-text [msg msgs]
   (let [constant? #(= :constant (:tag %))
         decs (:declarations msg)
         reordered (concat (filter constant? decs)
@@ -225,22 +227,22 @@
          (interpose "\n")
          (apply str))))
 
-(defn- ^{:testable true} annotate-md5 [msg msgs]
+(defn annotate-md5 [msg msgs]
   (let [text (md5-text msg msgs)
         md5 (hsh/md5 text)]
     (assoc msg :md5 md5)))
 
-;TODO: This is stupid code, when it failure=nontermination.
+;TODO: This is stupid code, because failure=nontermination.
 ;Replace it with something that creates a dependency tree,
 ;and then flattens it out, then do a simple reduce.
 ;Alternatively use an step limited iteration aproach.
-(defn- ^{:testable true} annotate-md5s [msgs]
+(defn annotate-md5s [msgs]
   (loop [annotated {}
          fresh (into #{} msgs)]
     (if (empty? fresh)
-      (vals annotated)
-      (let [msg (some #(when (set/subset? (:dependencies %)
-                                    (set (keys annotated)))
+      (into #{} (vals annotated))
+      (let [msg (some #(when (set/subset? (into #{} (:dependencies %))
+                                          (into #{} (keys annotated)))
                          %)
                       fresh)
             amsg (annotate-md5 msg annotated)
@@ -249,6 +251,27 @@
                  asmg-name amsg)
                (disj fresh msg))))))
 
+
+(defn annotate-cat [msg msgs]
+  (let [indexed-msgs (set/index msgs [:name :package])
+        separator (str (apply str (repeat 80 "=")) "\n")
+        dep-text (->> msg
+                      (tree-seq #(not-empty (:dependencies %))
+                                #(map (comp first indexed-msgs) (:dependencies %)))
+                      distinct
+                      rest
+                      (map (fn [m]
+                             (str
+                              separator
+                              (format "MSG: %s/%s\n" (:package m) (:name m))
+                              (:raw m)
+                              "\n")))
+                      (apply str))]
+    (assoc msg :cat (str (:raw msg) "\n" dep-text))))
+
+(defn annotate-cats [msgs]
+  (into #{} (map #(annotate-cat % msgs) msgs)))
+
 (defn load-msgs [root]
   (->> root
        msgs-in-dir
@@ -256,4 +279,5 @@
        annotate-dependencies
        ensure-nocycles
        ensure-complete-dependencies
-       annotate-md5s))
+       annotate-md5s
+       annotate-cats))
