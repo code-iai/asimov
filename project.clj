@@ -13,6 +13,7 @@
                  [necessary-evil "2.0.0"]
                  [aleph "0.3.2"]
                  [gloss "0.2.2"]
+                 [byte-streams "0.1.10"]
                  [pandect "0.3.2"]
                  [instaparse "1.3.2"]
                  [slingshot "0.10.3"]]
