@@ -1,14 +1,24 @@
 (ns asimov.tcpros-test
   (:require [asimov.tcpros :as t]
+            [asimov.util :as u]
             [clojure.test :refer :all]
-            [gloss.core  :as g]))
+            [gloss.core :as g]
+            [gloss.io :as i]
+            [gui.diff :refer :all]))
 
 (deftest header-frame
-  (let [hf (g/compile-frame t/header)])
-  (testing "A header frame is correctly decoded from a byte buffer."
-    ))
-
-"b0 00 00 00
+  (let [hf (g/compile-frame t/header)]
+    (testing "A header frame is correctly decoded from a byte buffer."
+      (is (=
+           {"message_definition" "string data\n\n"
+            "callerid" "/rostopic_4767_1316912741557"
+            "latching" "1"
+            "md5sum" "992ce8a1687cec8c8bd883ec73ca41d1"
+            "topic" "/chatter"
+            "type" "std_msgs/String"}
+           (into {} (i/decode hf
+                       (u/bytes-to-buffer
+                        "b0 00 00 00
    20 00 00 00
       6d 65 73 73 61 67 65 5f 64 65 66 69 6e 69 74 69 6f 6e 3d 73 74 72 69 6e 67
       20 64 61 74 61 0a 0a
@@ -23,9 +33,4 @@
    0e 00 00 00
       74 6f 70 69 63 3d 2f 63 68 61 74 74 65 72
    14 00 00 00
-      74 79 70 65 3d 73 74 64 5f 6d 73 67 73 2f 53 74 72 69 6e 67
-09 00 00 00
-   05 00 00 00
-      68 65 6c 6c 6f"
-
-{:message_definition "stringdata\n\n"}
+      74 79 70 65 3d 73 74 64 5f 6d 73 67 73 2f 53 74 72 69 6e 67"))))))))

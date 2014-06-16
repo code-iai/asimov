@@ -50,7 +50,7 @@
             e#))))
 
 (defn bytes-to-buffer [bs]
-  (let [bytes (->> (clojure.string/split bs #"\s")
+  (let [bytes (->> (clojure.string/split bs #"\s+")
                    (map (fn [s] (unchecked-byte (Integer/parseInt s 16))))
                    byte-array
                    ByteBuffer/wrap)]
