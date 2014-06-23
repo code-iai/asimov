@@ -1,5 +1,7 @@
 (ns asimov.util
-  (:require [clojure.test :refer :all]))
+  (:require [clojure.test :refer :all]
+            [byte-streams :as b])
+  (:import java.nio.ByteBuffer))
 
 (defn cycles
   "Detects and returns cycles in dependency graphs.
@@ -46,3 +48,10 @@
                 (report {:type :fail, :message ~msg,
                          :expected '~re, :actual m#})))
             e#))))
+
+(defn bytes-to-buffer [bs]
+  (let [bytes (->> (clojure.string/split bs #"\s+")
+                   (map (fn [s] (unchecked-byte (Integer/parseInt s 16))))
+                   byte-array
+                   ByteBuffer/wrap)]
+    bytes))

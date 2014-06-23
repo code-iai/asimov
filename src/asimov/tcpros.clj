@@ -3,9 +3,17 @@
             [aleph.tcp   :as a]
             [gloss.core  :as g]))
 
-(defn handler [ch client-info]
-  (receive-all ch
-    #(enqueue ch (str "You said " %))))
+(def header
+  (g/finite-frame :uint32-le
+                  (g/repeated (g/finite-frame :uint32-le
+                                              [(g/string :ascii :delimiters [\=])
+                                               (g/string :ascii)])
+                              :prefix :none)))
 
-(defn listen! []
-  (start-tcp-server handler {:port 10000, :frame (string :utf-8 :delimiters ["\r\n"])}))
+#_(defn handler [ch client-info]
+    (receive-all ch
+                 #(enqueue ch (str "You said " %))))
+
+#_(defn listen! []
+    (start-tcp-server handler {:port 10000, :frame
+                               (string :utf-8 :delimiters ["\r\n"])}))
