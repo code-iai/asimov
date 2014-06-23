@@ -6,10 +6,10 @@
    [necessary-evil.core :as xml-rpc]))
 
 ;;for testing locally
-(def ^:dynamic *ros-master-url* "http://192.168.56.101:11311/")
+(def ^:dynamic *ros-master-url* "http://192.168.2.105:11311/")
 
 
-(xml-rpc/call *ros-master-url* :getSystemState "/")
+;(xml-rpc/call *ros-master-url* :getSystemState "/")
 
 (defn gen-return-map [code status-message]
   {:success? (if (= 1 code) true false)
@@ -29,4 +29,10 @@
            (assoc :provider-url provider-url)))))
 
 
-(defn request-topic [])
+(defn request-topic
+  ([subscriber-node topic protocols]
+     (request-topic *ros-master-url* subscriber-node topic protocols))
+  ([slave-url subscriber-node topic protocols]
+     (xml-rpc/call slave-url :requestTopic
+                   subscriber-node topic protocols)))
+
