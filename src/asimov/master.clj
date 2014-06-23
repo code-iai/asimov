@@ -6,8 +6,7 @@
    [necessary-evil.core :as xml-rpc]))
 
 ;;for testing locally
-(def ^:dynamic *ros-master-url* "http://192.168.2.105:11311/")
-
+(def ^:dynamic *ros-master-url* "http://192.168.56.101:11311/")
 
 ;(xml-rpc/call *ros-master-url* :getSystemState "/")
 
@@ -36,3 +35,6 @@
      (xml-rpc/call slave-url :requestTopic
                    subscriber-node topic protocols)))
 
+(comment
+  (let [res (register-subscriber "/asimov" "/turtle1/command_velocity/" "turtlesim/Velocity" "http://localhost:8080")]
+    (request-topic (:provider-url res) "/asimov" "turtle1/command_velocity" [["TCPROS"]])))

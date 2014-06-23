@@ -4,7 +4,6 @@
             [gloss.core  :as g]
             [gloss.io    :as i]
             [taoensso.timbre :as t]))
-
 (alter-var-root #'*out* (constantly *out*))
 
 (def header-frame
@@ -17,18 +16,19 @@
 (defn handler [ch client-info]
   (l/siphon ch ch))
 
-(a/start-tcp-server handler {:port 10000})
+;;(a/start-tcp-server handler {:port 10000})
 
 (defn encode-header [h]
   (->> h
+       (#(do (println %) %))
        (map (fn [[k v]] [(name k) v]))
        (into [])
        (i/encode header-frame)))
 
 (defn decode-header [ch]
   (let [ch* (i/decode-channel-headers ch header-frame)
-        h (i/read-channel ch*)]
-    [ch* (future (->> @h l/wait-for-message
+        h (l/read-channel ch*)]
+    [ch* (future (->> @h 
                       (map (fn [[k v]] [(keyword k) v]))
                       (into {})))]))
 
@@ -38,9 +38,10 @@
                 a/tcp-client
                 l/wait-for-result)
         [ch< inh] (decode-header (l/map* (memfn toByteBuffer) ch>))]
-    (i/enqueue ch> (encode-header outh {:message_definition (:cat msg)
+    (l/enqueue ch> (encode-header {:message_definition (:cat msg)
                                         :callerid callerid
                                         :topic topic
                                         :md5sum (:md5 msg)
-                                        :type (str (:package msg) "/" (:name msg))}))
-    (println @inh)))
+                                   :type (str (:package msg) "/" (:name msg))}))
+    (println @inh)
+    ch<))
