@@ -43,5 +43,7 @@
 
 
 
-(defn start-server []
-  (start-http-server async-handler {:port 8080}))
+(defn start-server
+  ([] (start-server 8080))
+  ([port]
+     (start-http-server async-handler {:port port})))
