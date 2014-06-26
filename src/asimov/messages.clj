@@ -6,9 +6,8 @@
             [slingshot.slingshot :as ss]
             [taoensso.timbre :as t]))
 
-(def msg-parser
-  (insta/parser
-   " S = {<whitespace?> declaration? <whitespace? comment? ('\\n' | #'\\z')>}
+(def message-grammar
+  " S = {<whitespace?> declaration? <whitespace? comment? ('\\n' | #'\\z')>}
    <declaration> = field | constant
    <field> = unary-field | tuple-field | list-field
    unary-field = type <whitespace> field-name
@@ -38,7 +37,10 @@
    bool-lit = 'true' | 'false'
    comment = '#' #'.*'
    whitespace = #'[^\\S\\r\\n]'+
-   "))
+   ")
+
+(def msg-parser
+  (insta/parser message-grammar))
 
 (defn primitive-type
   "Tags the given type as primitive and turns it into a keyword."
