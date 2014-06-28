@@ -1,8 +1,10 @@
 (ns asimov.messages
   (:require [clojure.set :as set]
+            [clojure.core.match :refer [match]]
             [asimov.util :as util]
             [instaparse.core :as insta]
             [pandect.core :as hsh]
+            [gloss.core :as g]
             [slingshot.slingshot :as ss]
             [taoensso.timbre :as t]))
 
@@ -124,24 +126,24 @@
   list of its declarations."
   [msgs]
   (into #{} (for [{:keys [package raw] :as msg} msgs
-             :let [declarations (->> raw
-                                     msg-parser
-                                     (check-errors msg)
-                                     transform-parse
-                                     (make-packages-explicit package))]]
-         (assoc msg :declarations declarations))))
+                  :let [declarations (->> raw
+                                          msg-parser
+                                          (check-errors msg)
+                                          transform-parse
+                                          (make-packages-explicit package))]]
+              (assoc msg :declarations declarations))))
 
 (defn annotate-dependencies
   "Annotates the set of other messages required by this message."
   [msgs]
   (into #{} (for [{:keys [declarations] :as msg} msgs
-             :let [dependencies (->> declarations
-                                     (map :type)
-                                     (filter #(#{:message} (:tag %)))
-                                     (map #(select-keys % [:package :name]))
-                                     distinct
-                                     (into []))]]
-         (assoc msg :dependencies dependencies))))
+                  :let [dependencies (->> declarations
+                                          (map :type)
+                                          (filter #(#{:message} (:tag %)))
+                                          (map #(select-keys % [:package :name]))
+                                          distinct
+                                          (into []))]]
+              (assoc msg :dependencies dependencies))))
 
 (defn parse-path [path]
   (when-let [[_ package message]
