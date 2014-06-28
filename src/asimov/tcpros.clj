@@ -4,6 +4,7 @@
             [gloss.core  :as g]
             [gloss.io    :as i]
             [taoensso.timbre :as t]))
+
 (alter-var-root #'*out* (constantly *out*))
 
 (def header-frame
@@ -20,7 +21,6 @@
 
 (defn encode-header [h]
   (->> h
-       (#(do (println %) %))
        (map (fn [[k v]] [(name k) v]))
        (into [])
        (i/encode header-frame)))

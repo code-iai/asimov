@@ -7,7 +7,7 @@
             [gui.diff :refer :all]))
 
 (deftest header-frame
-  (let [hf (g/compile-frame t/header)]
+  (let [hf (g/compile-frame t/header-frame)]
     (testing "A header frame is correctly decoded from a byte buffer."
       (is (=
            {"message_definition" "string data\n\n"
