@@ -187,39 +187,37 @@
                "Can't load circular message definitions!")
     msgs))
 
-(defn- serealize-declaration [d msgs]
-  (condp = [(:tag d) (-> d :type :tag)]
-    [:constant :primitive]
-    (format "%s %s=%s"
-            (-> d :type :name name)
-            (:name d)
-            (-> d :value :raw))
-    [:variable :primitive]
-    (format "%s %s"
-            (-> d :type :name name)
-            (:name d))
-    [:tuple :primitive]
-    (format "%s[%s] %s"
-            (-> d :type :name name)
-            (:arity d)
-            (:name d))
-    [:list :primitive]
-    (format "%s[] %s"
-            (-> d :type :name name)
-            (:name d))
-    [:variable :message]
-    (format "%s %s"
-            (get-in msgs [(select-keys (:type d) [:name :package]) :md5])
-            (:name d))
-    [:tuple :message]
-    (format "%s %s"
-            (get-in msgs [(select-keys (:type d) [:name :package]) :md5])
-            (:name d))
-    [:list :message]
-    (format "%s %s"
-            (get-in msgs [(select-keys (:type d) [:name :package]) :md5])
-            (:name d))
-    (println d)))
+(defn serealize-declaration [d msgs]
+  (match d
+         {:tag :constant
+          :name n
+          :type {:tag :primitive
+                 :name t}
+          :value {:raw r}}
+         (format "%s %s=%s" (name t) n r)
+         {:tag :variable
+          :name n
+          :type {:tag :primitive
+                 :name t}}
+         (format "%s %s" (name t) n)
+         {:tag :tuple
+          :name n
+          :arity a
+          :type {:tag :primitive
+                 :name t}}
+         (format "%s[%s] %s" (name t) a n)
+         {:tag :list
+          :name n
+          :type {:tag :primitive
+                 :name t}}
+         (format "%s[] %s" (name t) n)
+         {:name n
+          :type {:tag :message
+                 :name t
+                 :package p}}
+         (format "%s %s"
+                 (get-in msgs [{:package p :name t} :md5])
+                 n)))
 
 (defn md5-text [msg msgs]
   (let [constant? #(= :constant (:tag %))
