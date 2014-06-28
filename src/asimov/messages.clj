@@ -94,8 +94,8 @@
     :bool-lit (literal (fn [bl] (case bl "true" true "false" false)))
     :string-lit (literal str)
     :msg-type (fn [&[f s]] {:tag :message
-                           :package (when s f)
-                           :name (or s f)})}
+                            :package (when s f)
+                            :name (or s f)})}
    parse-res))
 
 (defn make-packages-explicit
@@ -153,7 +153,7 @@
        file-seq
        (filter #(.isFile %))
        (map (fn [f] (when-let [id (parse-path (.getCanonicalPath f))]
-                     (assoc id :raw (slurp f)))))
+                      (assoc id :raw (slurp f)))))
        (remove nil?)))
 
 (defn dep-graph [msgs]
@@ -230,10 +230,10 @@
         md5 (hsh/md5 text)]
     (assoc msg :md5 md5)))
 
-;TODO: This is stupid code, because failure=nontermination.
-;Replace it with something that creates a dependency tree,
-;and then flattens it out, then do a simple reduce.
-;Alternatively use an step limited iteration aproach.
+                                        ;TODO: This is stupid code, because failure=nontermination.
+                                        ;Replace it with something that creates a dependency tree,
+                                        ;and then flattens it out, then do a simple reduce.
+                                        ;Alternatively use an step limited iteration aproach.
 (defn annotate-md5s [msgs]
   (loop [annotated {}
          fresh (into #{} msgs)]
@@ -272,22 +272,91 @@
        (mapv #(assoc % k (f % msgs)))
        (into #{})))
 
-(def ros-primitive {:bool    (g/enum :byte {false 0, true 1})
-                    :int8    :byte
-                    :byte    :byte
-                    :uint8   :ubyte
-                    :int16   :int16
-                    :uint16  :uint16
-                    :int32   :int32
-                    :uint32  :uint32
-                    :int64   :int64
-                    :uint64  :uint64
-                    :float32 :float32
-                    :float64 :float64
-                    :string  (g/finite-frame :int32 (g/string :utf-8))})
+(def primitive-frame {:bool    (g/enum :ubyte {false 0, true 1})
+                      :int8    :byte
+                      :byte    :byte
+                      :uint8   :ubyte
+                      :char    :ubyte
+                      :int16   :int16-le
+                      :uint16  :uint16-le
+                      :int32   :int32-le
+                      :uint32  :uint32-le
+                      :int64   :int64-le
+                      :uint64  :uint64-le
+                      :float32 :float32-le
+                      :float64 :float64-le
+                      :string  (g/finite-frame :uint32-le (g/string :utf-8))})
+
+(declare message-frame)
+(defn declaration-frame [d msgs]
+  (match d
+         {:tag :constant
+          :name n
+          :type {:tag :primitive
+                 :name t}
+          :value {:read r}}
+         [(keyword n)
+          r]
+         {:tag :variable
+          :name n
+          :type {:tag :primitive
+                 :name t}}
+         [(keyword n)
+          (primitive-frame t)]
+         {:tag :tuple
+          :name n
+          :arity a
+          :type {:tag :primitive
+                 :name t}}
+         [(keyword name)
+          (repeat a (primitive-frame t))]
+         {:tag :list
+          :name n
+          :type {:tag :primitive
+                 :name t}}
+         [(keyword n)
+          (g/finite-frame :uint32-le
+                          (g/repeated (primitive-frame t)
+                                    :prefix :none))]
+         {:tag :variable
+          :name n
+          :type {:tag :message
+                 :name t
+                 :package p}}
+         [(keyword n)
+          (message-frame (get-in msgs
+                                 [{:package p :name t} 0])
+                         msgs)]
+         {:tag :tuple
+          :name n
+          :arity a
+          :type {:tag :message
+                 :name t
+                 :package p}}
+         [(keyword n)
+          (repeat a (message-frame (get-in msgs
+                                           [{:package p :name t} 0])
+                                   msgs))]
+         {:tag :list
+          :name n
+          :type {:tag :message
+                 :name t
+                 :package p}}
+         [(keyword n)
+          (g/finite-frame :uint32-le
+                          (g/repeated (message-frame (get-in msgs
+                                                           [{:package p :name t} 0])
+                                                   msgs)
+                                    :prefix :none))]))
+
+(defn message-frame [msg msgs]
+  (->> (mapv #(declaration-frame % msgs) (:declarations msg))
+       (apply concat)
+       (apply g/ordered-map)))
 
 (defn frame [msg msgs]
-  nil)
+  (g/finite-frame :uint32-le
+                  (message-frame msg (set/index msgs [:name :package]))))
 
 (defn load-msgs [root]
   (-> root
@@ -297,4 +366,5 @@
       ensure-nocycles
       ensure-complete-dependencies
       annotate-md5s
-      (annotate :cat cat)))
+      (annotate :cat cat)
+      (annotate :frame frame)))
