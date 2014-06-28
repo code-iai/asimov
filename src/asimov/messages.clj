@@ -256,7 +256,7 @@
                (disj fresh msg))))))
 
 
-(defn annotate-cat [msg msgs]
+(defn cat [msg msgs]
   (let [indexed-msgs (set/index msgs [:name :package])
         separator (str (apply str (repeat 80 "=")) "\n")
         dep-text (->> msg
@@ -271,17 +271,36 @@
                               (:raw m)
                               "\n")))
                       (apply str))]
-    (assoc msg :cat (str (:raw msg) "\n" dep-text))))
+    (str (:raw msg) "\n" dep-text)))
 
-(defn annotate-cats [msgs]
-  (into #{} (map #(annotate-cat % msgs) msgs)))
+(defn annotate [msgs k f]
+  (->> msgs
+       (map #(assoc % k (f % msgs)))
+       (into #{})))
+
+(def ros-primitive {:bool    (g/enum :byte {false 0, true 1})
+                    :int8    :byte
+                    :byte    :byte
+                    :uint8   :ubyte
+                    :int16   :int16
+                    :uint16  :uint16
+                    :int32   :int32
+                    :uint32  :uint32
+                    :int64   :int64
+                    :uint64  :uint64
+                    :float32 :float32
+                    :float64 :float64
+                    :string  (g/finite-frame :int32 (g/string :utf-8))})
+
+(defn frame [msg msgs]
+  nil)
 
 (defn load-msgs [root]
-  (->> root
-       msgs-in-dir
-       annotate-declarations
-       annotate-dependencies
-       ensure-nocycles
-       ensure-complete-dependencies
-       annotate-md5s
-       annotate-cats))
+  (-> root
+      msgs-in-dir
+      annotate-declarations
+      annotate-dependencies
+      ensure-nocycles
+      ensure-complete-dependencies
+      annotate-md5s
+      (annotate :cat cat)))
