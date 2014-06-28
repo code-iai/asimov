@@ -121,29 +121,25 @@
         (ss/throw+ {:msg msg :error (insta/get-failure p)} "Error while parsing msg!"))
     p))
 
-(defn annotate-declarations
+(defn declarations
   "Parses the given message and returns a
   list of its declarations."
-  [msgs]
-  (into #{} (for [{:keys [package raw] :as msg} msgs
-                  :let [declarations (->> raw
-                                          msg-parser
-                                          (check-errors msg)
-                                          transform-parse
-                                          (make-packages-explicit package))]]
-              (assoc msg :declarations declarations))))
+  [{:keys [package raw] :as msg} msgs]
+  (->> raw
+       msg-parser
+       (check-errors msg)
+       transform-parse
+       (make-packages-explicit package)))
 
-(defn annotate-dependencies
+(defn dependencies
   "Annotates the set of other messages required by this message."
-  [msgs]
-  (into #{} (for [{:keys [declarations] :as msg} msgs
-                  :let [dependencies (->> declarations
-                                          (map :type)
-                                          (filter #(#{:message} (:tag %)))
-                                          (map #(select-keys % [:package :name]))
-                                          distinct
-                                          (into []))]]
-              (assoc msg :dependencies dependencies))))
+  [{:keys [declarations] :as msg} msgs]
+  (->> declarations
+       (map :type)
+       (filter #(#{:message} (:tag %)))
+       (map #(select-keys % [:package :name]))
+       distinct
+       (into [])))
 
 (defn parse-path [path]
   (when-let [[_ package message]
@@ -273,7 +269,7 @@
 
 (defn annotate [msgs k f]
   (->> msgs
-       (map #(assoc % k (f % msgs)))
+       (mapv #(assoc % k (f % msgs)))
        (into #{})))
 
 (def ros-primitive {:bool    (g/enum :byte {false 0, true 1})
@@ -296,8 +292,8 @@
 (defn load-msgs [root]
   (-> root
       msgs-in-dir
-      annotate-declarations
-      annotate-dependencies
+      (annotate :declarations declarations)
+      (annotate :dependencies dependencies)
       ensure-nocycles
       ensure-complete-dependencies
       annotate-md5s

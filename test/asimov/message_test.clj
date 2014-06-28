@@ -41,16 +41,14 @@
               :name "Header"}
        :name "header"})))
 
-(deftest declaration-annotation
+(deftest declarations-test
   (testing "Simple single line declarations."
-    (are [inp exp] (= #{{:name 'name
-                         :package 'pkg
-                         :raw inp
-                         :declarations exp}}
-                      (annotate-declarations
-                       #{{:name 'name
-                          :package 'pkg
-                          :raw inp}}))
+    (are [inp exp] (= exp
+                      (declarations
+                       {:name 'name
+                        :package 'pkg
+                        :raw inp}
+                       'msgs))
          "# Data"
          []
          "int32 id"
@@ -108,14 +106,12 @@
            :value {:raw "border wspace removed"
                    :read "border wspace removed"}}]))
   (testing "Multiline declarations."
-    (are [inp exp] (= #{{:package "common_msgs"
-                         :name "PoseWithCovariance"
-                         :raw inp
-                         :declarations exp}}
-                      (annotate-declarations
-                       #{{:package "common_msgs"
-                          :name "PoseWithCovariance"
-                          :raw inp}}))
+    (are [inp exp] (= exp
+                      (declarations
+                       {:package "common_msgs"
+                        :name "PoseWithCovariance"
+                        :raw inp}
+                       'msgs))
          "# This represents a pose in free space with uncertainty.
 
 Pose pose
@@ -137,14 +133,14 @@ float64[36] covariance
            :arity 36
            :name "covariance"}])))
 
-(deftest dependency-annotation
-  (are [inp] (= #{{:declarations inp
-                   :dependencies [{:package "geometry_msgs"
-                                   :name "PoseStamped"}
-                                  {:name "GoalStatus"
-                                   :package "actionlib_msgs"}]}}
-                (annotate-dependencies
-                 #{{:declarations inp}}))
+(deftest dependencies-test
+  (are [inp] (= [{:package "geometry_msgs"
+                  :name "PoseStamped"}
+                 {:name "GoalStatus"
+                  :package "actionlib_msgs"}]
+                (dependencies
+                 {:declarations inp}
+                 'msgs))
        [{:tag :variable
          :type {:tag :primitive
                 :name :int8}
