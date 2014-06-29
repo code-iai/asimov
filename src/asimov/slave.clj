@@ -16,7 +16,7 @@
   (do (prn method "with " args)
       true))
 
-(def slave-handler
+(defn slave-handler [atom]
   (xml-rpc/end-point
    {:getBusStats (partial dbg :getBusStats)        
     :getBusInfo (partial dbg :getBusInfo)         
@@ -38,10 +38,10 @@
       resp)))
 
 (def handler
-  (-> slave-handler
+  (-> (slave-handler nil)
       wrap-prn))
 
 (defn start-server
-  ([] (start-server 8080))
-  ([port]
-     (run-jetty #'handler {:port port :join? false})))
+  ([& {:keys [port handler] :or {port 8080
+                                 handler (slave-handler nil)}}]
+     (run-jetty handler {:port port :join? false})))
