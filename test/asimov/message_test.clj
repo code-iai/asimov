@@ -314,7 +314,11 @@ float64[36] covariance
   (let [msgs (-> "resources/msgs"
                  clojure.java.io/file
                  load-msgs)]
-    (are [sel exp] (clojure.set/subset? exp (get-in (index msgs [:name :package]) [sel 0]))
+    (are [sel exp] (= exp (select-keys
+                           (first (get (index msgs
+                                              [:name :package])
+                                       sel))
+                           (keys exp)))
          {:name "PoseWithCovariance"
           :package "geometry_msgs"}
          {:name "PoseWithCovariance"
