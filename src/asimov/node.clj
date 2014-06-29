@@ -1,11 +1,17 @@
 (ns asimov.node
   (:require [asimov.slave :as s]
-            [asimov.master :as m]
+            [asimov.configuration :as config]))
             [asimov.tcpros :as tcpros]
             [asimov.messages :as msgs]))
 
-(defn node [name & {:keys [port handler]}]
-  {:server (s/start-server )})
+(defn node [name & {:keys [port handlerfn]
+                    :or {port 8080 handlerfn s/slave-handler}}]
+  (let [n (atom {:name name
+                 :host (config/cfg :localhost)
+                 :port port})]
+    (swap! n assoc :server (s/start-server {:port port
+                                            :handler (handlerfn n)}))
+    n))
 
 
 (defn subscribe-to-topic [node-name topic msg-name]

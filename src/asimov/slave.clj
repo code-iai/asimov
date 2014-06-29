@@ -1,30 +1,33 @@
 (ns asimov.slave
   (:use [lamina.core]
         [asimov.configuration]
+        [ring.adapter.jetty]
         [aleph.http])
   (:require
    [compojure
-    [core :as compojure :refer [defroutes GET POST]]
+    [core :as compojure :refer [defroutes GET POST ANY]]
     [handler :refer [api]]]
    [necessary-evil.core :as xml-rpc]))
 
 (def TODO
   (fn [& args] (throw (Exception. "Not implemented"))))
 
-(def slave-handler
+(defn dbg [method & args]
+  (do (prn method "with " args)
+      true))
+
+(defn slave-handler [atom]
   (xml-rpc/end-point
-   {:getBusStats        TODO
-    :getBusInfo         TODO
-    :getMasterUri       (fn [caller_id] (cfg :master-uri))
-    :shutdown           TODO
-    :getPid             TODO
-    :getSubscriptions   (fn [caller_id] (cfg :subscriptions))
-    :getPublications    (fn [caller_id] (cfg :publications))
-    :paramUpdate        TODO
-    :publisherUpdate    (fn [caller_id topic publishers]
-                          (assoc-in @configuration
-                                    [:subscriptions topic] publishers))
-    :requestTopic       TODO}))
+   {:getBusStats (partial dbg :getBusStats)        
+    :getBusInfo (partial dbg :getBusInfo)         
+    :getMasterUri (partial dbg :getMasterUri)       
+    :shutdown (partial dbg :shutdown)           
+    :getPid (partial dbg :getPid)             
+    :getSubscriptions (partial dbg :getSubscriptions)   
+    :getPublications (partial dbg :getPublications)    
+    :paramUpdate (partial dbg :paramUpdate)        
+    :publisherUpdate (partial dbg :publisherUpdate)    
+    :requestTopic (partial dbg :requestTopic)       }))
 (alter-var-root #'*out* (constantly *out*))
 
 (defn wrap-prn [handler]
@@ -35,15 +38,10 @@
       resp)))
 
 (def handler
-  (-> slave-handler
+  (-> (slave-handler nil)
       wrap-prn))
 
-(defn async-handler [channel request]
-  (enqueue channel (#'handler request)))
-
-
-
 (defn start-server
-  ([] (start-server 8080))
-  ([port]
-     (start-http-server async-handler {:port port})))
+  ([& {:keys [port handler] :or {port 8080
+                                 handler (slave-handler nil)}}]
+     (run-jetty handler {:port port :join? false})))

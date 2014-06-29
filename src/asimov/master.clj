@@ -27,6 +27,16 @@
        (-> (gen-return-map code message)
            (assoc :provider-url provider-url)))))
 
+(defn register-publisher
+  ([publisher-node topic msg publisher-url]
+     (register-publisher *ros-master-url* publisher-node
+                          topic msg publisher-url))
+  ([master-url publisher-node topic msg publisher-url]
+     (let [[code message provider-url]
+           (xml-rpc/call master-url :registerPublisher
+                         publisher-node topic msg publisher-url)]
+       (-> (gen-return-map code message)
+           (assoc :subscriber-url provider-url)))))
 
 (defn request-topic
   ([subscriber-node topic protocols]
