@@ -16,5 +16,6 @@
                  [byte-streams "0.1.10"]
                  [pandect "0.3.2"]
                  [instaparse "1.3.2"]
+                 [ring/ring-jetty-adapter "1.3.0"]
                  [slingshot "0.10.3"]]
   :plugins [[lein-marginalia "0.7.1"]])
