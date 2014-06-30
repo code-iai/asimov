@@ -28,7 +28,10 @@
     :paramUpdate (partial dbg :paramUpdate)        
     :publisherUpdate (partial dbg :publisherUpdate)    
     :requestTopic (fn [& args]
-                    [1 ["TCPROS" "192.168.254.182" 10100]])}))
+                    (prn "hi " atom)
+                    [1 "status message" ["TCPROS" (first (:addr @atom))
+                                         (:port @atom)]]
+                    )}))
 (alter-var-root #'*out* (constantly *out*))
 
 (defn wrap-prn [handler]

@@ -9,7 +9,7 @@
 
 ;;for testing locally
 
-(def ^:dynamic *ros-master-url* "")
+(def ^:dynamic *ros-master-url* "http://192.168.56.101:11311/")
 
 ;(xml-rpc/call *ros-master-url* :getSystemState "/")
 

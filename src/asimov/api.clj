@@ -45,4 +45,22 @@
         msg (util/msg-by-name node msg-name)
         _ (trace "message " msg)]
     (log "Subscribed with " host port node-name topic #_msg)
-    (tcpros/subscribe host port node-name topic msg)))
+    (tcpros/subscribe! host port node-name topic msg)))
+
+
+(defn publish! [node topic msg-name port]
+  (let [msg (util/msg-by-name node msg-name)
+        node-name (util/lookup node :name)
+        master-url (util/to-http-addr (util/lookup node :master-addr))
+        node-url (util/to-http-addr (util/lookup node :addr))
+        _ (prn "master-url " master-url "node-url " node-url)
+        topic-map {topic {:msg-def msg
+                          :connections #{}}}]
+    (swap! node assoc
+           :topics topic-map
+           :port port
+           :conf {:pedantic? false})
+    (prn "node " node)
+    (let [res (asimov.tcpros/listen! node)]
+      (m/register-publisher master-url node-name topic msg-name node-url)
+      res)))
