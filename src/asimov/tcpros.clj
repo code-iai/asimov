@@ -42,47 +42,43 @@
                                    :topic topic
                                    :md5sum (:md5 msg)
                                    :type (str (:package msg) "/" (:name msg))}))
-    (println "enqued!")
     (println "header:" @inh)
     (i/decode-channel ch< (:frame msg))))
 
 (defn handler-fn[node]
   (fn [ch> client-info]
-    (println "THIS!:" client-info)
-    (let [n @node
-          _ (println "1!")
-          [ch< inh] (decode-header (l/mapcat* f/bytes->byte-buffers ch>))
-          _ (println "2!")
-          inh @inh
-          _ (println "3!")
-          reply! #((l/enqueue ch> (encode-header %)))
-          msg-def (get-in n [:topics (:topic @inh) :msg-def])]
-      (prn "received Header: " inh)
-      (cond
-       (not msg-def)
-       (reply! {:error (format "No such topic:%s" (:topic inh))})
-       (not= (:md5 msg-def) (:md5sum inh))
-       (reply! {:error (format "Mismatched md5:%s/%s"
-                               (:md5 msg-def)
-                               (:md5sum inh))})
-       (and (u/lookup node [:conf :pedantic?])
-            (not= (:cat msg-def) (:message_definition inh)))
-       (reply! {:error (format "Mismatched cat:%s/%s"
-                               (:cat msg-def)
-                               (:message_definitiona inh))})
-       :else
-       (do
-         (reply! {:md5sum (:md5 msg-def)
-                  :type (str (:package msg-def) "/" (:name msg-def))})
-         (let [ch (as/chan)]
-           (as/go-loop []
-             (if-let [msg (as/<! ch)]
-               (do (l/enqueue ch> (i/encode (:frame msg-def) msg))
-                   (recur))
-               (l/close ch>)))
-           (swap! node update-in
-                  [:topics (:topic inh) :connections]
-                  conj {:client client-info :chan ch})))))))
+    (future
+      (let [n @node
+            [ch< inh] (decode-header (l/mapcat* f/bytes->byte-buffers ch>))
+            inh @inh
+            reply! #((l/enqueue ch> (encode-header %)))
+            msg-def (get-in n [:topics (:topic @inh) :msg-def])]
+        (prn "received Header: " inh)
+        (cond
+         (not msg-def)
+         (reply! {:error (format "No such topic:%s" (:topic inh))})
+         (not= (:md5 msg-def) (:md5sum inh))
+         (reply! {:error (format "Mismatched md5:%s/%s"
+                                 (:md5 msg-def)
+                                 (:md5sum inh))})
+         (and (u/lookup node [:conf :pedantic?])
+              (not= (:cat msg-def) (:message_definition inh)))
+         (reply! {:error (format "Mismatched cat:%s/%s"
+                                 (:cat msg-def)
+                                 (:message_definition inh))})
+         :else
+         (do
+           (reply! {:md5sum (:md5 msg-def)
+                    :type (str (:package msg-def) "/" (:name msg-def))})
+           (let [ch (as/chan)]
+             (as/go-loop []
+               (if-let [msg (as/<! ch)]
+                 (do (l/enqueue ch> (i/encode (:frame msg-def) msg))
+                     (recur))
+                 (l/close ch>)))
+             (swap! node update-in
+                    [:topics (:topic inh) :connections]
+                    conj {:client client-info :chan ch}))))))))
 
 (defn listen! [node]
   (let [handler (handler-fn node)]
