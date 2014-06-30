@@ -62,3 +62,46 @@
   ([node path not-found]
      (let [path (if (coll? path) path [path])]
        (get-in @node path (config/cfg path not-found)))))
+
+
+(defn- numeric-address?
+  [host]
+  (re-matches #"[0-9.]*" host))
+
+(defn resolve-host
+  ([host] (resolve-host config/configuration host))
+  ([node host]
+     (or (and (numeric-address? host) host)
+         (lookup node [:master-addr 0]))))
+
+(defn resolve-ip
+  "resolves the ip-address - replaces hostnames with ip of the ros
+   master the node is talking to. Without node, lookup the ip in the
+   global configuration. Returns [host port]"
+  ([ip-address] (resolve-ip config/configuration ip-address))
+  ([node ip-address]
+     (and (.startsWith ip-address "http://")
+          (let [ip-address (.substring ip-address 7) ;; strip away http://
+                [host port] (.split ip-address ":")
+                host (last (.split host "/"))]
+            [(or (and (numeric-address? host) host)
+                 (resolve-host node host))
+             port]))))
+
+
+(defn to-http-addr
+  "expects [host port] and returns \"http://<host>:<port>\""
+  [[host port]]
+  (str "http://" host ":" port "/"))
+
+
+(defn msg-by-name
+  "looks up the message by name in the message definitions of the node
+   If no node is specified defaults to global config"
+  ([msg-name] (msg-by-name config/configuration msg-name))
+  ([node msg-name]
+     (let [[package name] (.split msg-name "/")]
+       (as-> (lookup node :messages) x
+           (clojure.set/index x [:name :package])
+           (x {:name name :package package})
+           (first x)))))

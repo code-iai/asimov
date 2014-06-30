@@ -11,6 +11,7 @@
                  [gui-diff "0.6.5"]
                  [ring "1.2.2"]
                  [compojure "1.1.8"]
+                 [org.clojure/core.memoize "0.5.6"]
                  [necessary-evil "2.0.0"]
                  [aleph "0.3.2"]
                  [gloss "0.2.2"]

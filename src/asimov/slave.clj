@@ -28,7 +28,7 @@
     :paramUpdate (partial dbg :paramUpdate)        
     :publisherUpdate (partial dbg :publisherUpdate)    
     :requestTopic (fn [& args]
-                    ["TCPROS" "192.168.254.182" 10100])}))
+                    [1 ["TCPROS" "192.168.254.182" 10100]])}))
 (alter-var-root #'*out* (constantly *out*))
 
 (defn wrap-prn [handler]

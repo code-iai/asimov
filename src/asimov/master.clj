@@ -1,12 +1,15 @@
 (ns asimov.master
-  (require
+  (:require
    [compojure
     [core :as compojure :refer [defroutes GET POST]]
     [handler :refer [api]]]
+   [asimov.util :as util]
+   [asimov.configuration :as config]
    [necessary-evil.core :as xml-rpc]))
 
 ;;for testing locally
-(def ^:dynamic *ros-master-url* "http://192.168.254.101:11311/")
+
+(def ^:dynamic *ros-master-url* "")
 
 ;(xml-rpc/call *ros-master-url* :getSystemState "/")
 
@@ -25,7 +28,7 @@
            (xml-rpc/call master-url :registerSubscriber
                          subscriber-node topic msg subscriber-url)]
        (-> (gen-return-map code message)
-           (assoc :provider-url provider-url)))))
+           (assoc :provider-urls provider-url)))))
 
 (defn register-publisher
   ([publisher-node topic msg publisher-url]
@@ -36,14 +39,18 @@
            (xml-rpc/call master-url :registerPublisher
                          publisher-node topic msg publisher-url)]
        (-> (gen-return-map code message)
-           (assoc :subscriber-url provider-url)))))
+           (assoc :subscriber-urls provider-url)))))
 
 (defn request-topic
   ([subscriber-node topic protocols]
      (request-topic *ros-master-url* subscriber-node topic protocols))
   ([slave-url subscriber-node topic protocols]
-     (xml-rpc/call slave-url :requestTopic
-                   subscriber-node topic protocols)))
+     (let [res (xml-rpc/call slave-url :requestTopic
+                             subscriber-node topic protocols)
+           [code message [protocol host port]]
+           (if (= (count res) 2) [(first res) "" (second res)] res)]
+       (-> (gen-return-map code message)
+           (assoc :host host :port port :protocol protocol)))))
 
 (comment
   (let [res (register-subscriber "/asimov" "/turtle1/command_velocity/" "turtlesim/Velocity" "http://localhost:8080")]

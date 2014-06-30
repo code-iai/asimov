@@ -360,6 +360,7 @@
 
 (defn load-msgs [root]
   (-> root
+      clojure.java.io/file
       msgs-in-dir
       (annotate :declarations declarations)
       (annotate :dependencies dependencies)
