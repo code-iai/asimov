@@ -2,7 +2,7 @@
   (:require [clojure.test :refer :all]
             [clojure.set :refer :all]
             [gui.diff :refer :all]
-            [asimov.messages :refer :all]
+            [asimov.message :refer :all]
             [asimov.util :refer :all]))
 
 (deftest pkg-expansion

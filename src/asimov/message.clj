@@ -1,4 +1,4 @@
-(ns asimov.messages
+(ns asimov.message
   (:require [clojure.set :as set]
             [clojure.core.match :refer [match]]
             [asimov.util :as util]
