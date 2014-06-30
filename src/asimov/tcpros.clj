@@ -31,7 +31,7 @@
                       (map (fn [[k v]] [(keyword k) v]))
                       (into {})))]))
 
-(defn subscribe [host port callerid topic msg]
+(defn subscribe! [host port callerid topic msg]
   (let [ch> (->> {:host host
                   :port port}
                  a/tcp-client
@@ -48,6 +48,7 @@
 (defn handler-fn[node]
   (fn [ch> client-info]
     (future
+      (println "CON!")
       (let [n @node
             [ch< inh] (decode-header (l/mapcat* f/bytes->byte-buffers ch>))
             inh @inh
