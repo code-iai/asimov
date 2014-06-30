@@ -40,7 +40,7 @@
         _ (prn "host port " host port)
         msg (util/msg-by-name node msg-name)
         _ (prn "message " msg)]
-    (prn "subscribe with " host port node-name topic msg)
+    (prn "subscribe with " host port node-name topic #_msg)
     (tcpros/subscribe host port node-name topic msg)))
 
 
