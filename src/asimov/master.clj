@@ -6,7 +6,7 @@
    [necessary-evil.core :as xml-rpc]))
 
 ;;for testing locally
-(def ^:dynamic *ros-master-url* "http://192.168.56.101:11311/")
+(def ^:dynamic *ros-master-url* "http://192.168.254.101:11311/")
 
 ;(xml-rpc/call *ros-master-url* :getSystemState "/")
 

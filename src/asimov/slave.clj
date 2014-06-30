@@ -27,7 +27,8 @@
     :getPublications (partial dbg :getPublications)    
     :paramUpdate (partial dbg :paramUpdate)        
     :publisherUpdate (partial dbg :publisherUpdate)    
-    :requestTopic (partial dbg :requestTopic)       }))
+    :requestTopic (fn [& args]
+                    ["TCPROS" "192.168.254.182" 10100])}))
 (alter-var-root #'*out* (constantly *out*))
 
 (defn wrap-prn [handler]
@@ -37,11 +38,11 @@
       (prn "response " (pr-str resp))
       resp)))
 
-(def handler
+(def node-handler
   (-> (slave-handler nil)
       wrap-prn))
 
 (defn start-server
   ([& {:keys [port handler] :or {port 8080
-                                 handler (slave-handler nil)}}]
+                                 handler #'node-handler}}]
      (run-jetty handler {:port port :join? false})))

@@ -1,5 +1,6 @@
 (ns asimov.util
   (:require [clojure.test :refer :all]
+            [asimov.configuration :as config]
             [byte-streams :as b])
   (:import java.nio.ByteBuffer))
 
@@ -55,3 +56,9 @@
                    byte-array
                    ByteBuffer/wrap)]
     bytes))
+
+(defn lookup
+  ([node path] (lookup node path nil))
+  ([node path not-found]
+     (let [path (if (coll? path) path [path])]
+       (get-in @node path (config/cfg path not-found)))))
