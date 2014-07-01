@@ -44,7 +44,7 @@
         _ (trace "host port " host port)
         msg (util/msg-by-name node msg-name)
         _ (trace "message " msg)]
-    (log "Subscribed with " host port node-name topic #_msg)
+#_    (log "Subscribed with " host port node-name topic #_msg)
     (tcpros/subscribe! host port node-name topic msg)))
 
 

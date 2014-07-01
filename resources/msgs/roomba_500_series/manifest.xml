@@ -1,0 +1,24 @@
+<package>
+  <description brief="roomba_500_series">
+
+     iRobot Roomba 500 package based on the iRobot Open Interface Specification. There are two nodes available, a light node which exposes odometry and velocity commands, and a full node which exposes all capabilities of the underlying library.
+
+  </description>
+  <author>Gonçalo Cabrita</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/roomba_500_series</url>
+  <export>
+    <cpp cflags="-I${prefix}/include" lflags="-L${prefix}/lib -Wl,-rpath,${prefix}/lib -lirobot_oi -lgo_dock"/>
+  </export>
+  <depend package="roscpp"/>
+  <depend package="actionlib"/>
+  <depend package="actionlib_msgs"/>
+  <depend package="tf"/>
+  <depend package="nav_msgs"/>
+  <depend package="geometry_msgs"/>
+  <depend package="cereal_port" />
+
+</package>
+
+
