@@ -285,7 +285,9 @@
                       :uint64  :uint64-le
                       :float32 :float32-le
                       :float64 :float64-le
-                      :string  (g/finite-frame :uint32-le (g/string :utf-8))})
+                      :string  (g/finite-frame :uint32-le (g/string :utf-8))
+                      :time    (g/ordered-map :sec  :uint32-le
+                                              :nsec :uint32-le)})
 
 (declare message-frame)
 (defn declaration-frame [d msgs]
@@ -317,15 +319,14 @@
          [(keyword n)
           (g/finite-frame :uint32-le
                           (g/repeated (primitive-frame t)
-                                    :prefix :none))]
+                                      :prefix :none))]
          {:tag :variable
           :name n
           :type {:tag :message
                  :name t
                  :package p}}
          [(keyword n)
-          (message-frame (get-in msgs
-                                 [{:package p :name t} 0])
+          (message-frame (-> msgs (get {:package p :name t}) first)
                          msgs)]
          {:tag :tuple
           :name n
@@ -334,8 +335,7 @@
                  :name t
                  :package p}}
          [(keyword n)
-          (repeat a (message-frame (get-in msgs
-                                           [{:package p :name t} 0])
+          (repeat a (message-frame (-> msgs (get {:package p :name t}) first)
                                    msgs))]
          {:tag :list
           :name n
@@ -344,10 +344,9 @@
                  :package p}}
          [(keyword n)
           (g/finite-frame :uint32-le
-                          (g/repeated (message-frame (get-in msgs
-                                                           [{:package p :name t} 0])
-                                                   msgs)
-                                    :prefix :none))]))
+                          (g/repeated (message-frame (-> msgs (get {:package p :name t}) first)
+                                                     msgs)
+                                      :prefix :none))]))
 
 (defn message-frame [msg msgs]
   (->> (mapv #(declaration-frame % msgs) (:declarations msg))
