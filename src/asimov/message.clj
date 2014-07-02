@@ -287,7 +287,9 @@
                       :float64 :float64-le
                       :string  (g/finite-frame :uint32-le (g/string :utf-8))
                       :time    (g/ordered-map :sec  :uint32-le
-                                              :nsec :uint32-le)})
+                                              :nsec :uint32-le)
+                      :duration    (g/ordered-map :sec  :uint32-le
+                                                  :nsec :uint32-le)})
 
 (declare message-frame)
 (defn declaration-frame [d msgs]
