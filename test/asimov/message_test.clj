@@ -9,7 +9,7 @@
   (testing "Implicit packages are correctly expanded
     to explicit ones."
     (are [exp inp]
-      (is (= [exp] (make-packages-explicit 'pkg [inp])))
+      (= [exp] (make-packages-explicit 'pkg [inp]))
       {:tag :variable
        :type {:tag :message
               :package "geometry_msgs"
@@ -178,7 +178,7 @@ float64[36] covariance
 
 (deftest path-parsing
   (testing "A path should be split correctly into package and message names."
-    (are [path exp] (is (= exp (parse-path path)))
+    (are [path exp] (= exp (parse-path path))
          "./common_msgs/actionlib_msgs/msg/GoalID.msg"
          {:package "actionlib_msgs"
           :name "GoalID"}
@@ -258,7 +258,7 @@ float64[36] covariance
 
   (testing "Ensuring dependencies will throw an exception with incomplete dependencies."
     (is (thrown-with-data? #"Missing dependencies!"
-                           #{{:tag :asimov.messages/missing-deps
+                           #{{:tag :asimov.message/missing-deps
                               :missing {{:package "vehicle"
                                          :name "car"}
                                         #{{:package "round"
@@ -276,7 +276,7 @@ float64[36] covariance
 
 (deftest cycle-detection
   (testing  "ensure-nocycles is the identity if there are no cycles in the dependency graph"
-    (are [exp] (is (= exp (ensure-nocycles exp)))
+    (are [exp] (= exp (ensure-nocycles exp))
          #{{:package "round"
             :name "tire"
             :dependencies []}
@@ -286,7 +286,7 @@ float64[36] covariance
                             :name "tire"}]}})
     (testing "ensure-dependencies will throw an exception when there are cycles in the dependency graphs"
       (is (thrown-with-data? #"Can't load circular message definitions!"
-                             #{{:tag :asimov.messages/circular-msg
+                             #{{:tag :asimov.message/circular-msg
                                 :cycles #{[{:package "round",
                                             :name "tire"}
                                            {:package "vehicle",
