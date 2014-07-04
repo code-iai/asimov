@@ -94,8 +94,8 @@
     :bool-lit (literal (fn [bl] (case bl "true" true "false" false)))
     :string-lit (literal str)
     :msg-type (fn [&[f s]] {:tag :message
-                            :package (when s f)
-                            :name (or s f)})}
+                           :package (when s f)
+                           :name (or s f)})}
    parse-res))
 
 (defn make-packages-explicit
@@ -153,7 +153,7 @@
        file-seq
        (filter #(.isFile %))
        (map (fn [f] (when-let [id (parse-path (.getCanonicalPath f))]
-                      (assoc id :raw (slurp f)))))
+                     (assoc id :raw (slurp f)))))
        (remove nil?)))
 
 (defn dep-graph [msgs]
@@ -230,25 +230,23 @@
         md5 (hsh/md5 text)]
     (assoc msg :md5 md5)))
 
-                                        ;TODO: This is stupid code, because failure=nontermination.
-                                        ;Replace it with something that creates a dependency tree,
-                                        ;and then flattens it out, then do a simple reduce.
-                                        ;Alternatively use an step limited iteration aproach.
 (defn annotate-md5s [msgs]
-  (loop [annotated {}
-         fresh (into #{} msgs)]
-    (if (empty? fresh)
-      (into #{} (vals annotated))
-      (let [msg (some #(when (set/subset? (into #{} (:dependencies %))
-                                          (into #{} (keys annotated)))
-                         %)
-                      fresh)
-            amsg (annotate-md5 msg annotated)
-            asmg-name (select-keys amsg [:name :package])]
-        (recur (assoc annotated
-                 asmg-name amsg)
-               (disj fresh msg))))))
-
+  (let [indexed-msgs (set/index msgs [:name :package])]
+    (->>
+     msgs
+     (mapcat (fn [msg] (tree-seq #(not-empty (:dependencies %))
+                                #(map (comp first indexed-msgs) (:dependencies %))
+                                msg)))
+     reverse
+     distinct
+     (reduce (fn [msgs msg]
+               (let [amsg (annotate-md5 msg msgs)
+                     asmg-name (select-keys amsg [:name :package])]
+                 (assoc msgs
+                   asmg-name amsg)))
+             {})
+     vals
+     (into #{}))))
 
 (defn cat [msg msgs]
   (let [indexed-msgs (set/index msgs [:name :package])
