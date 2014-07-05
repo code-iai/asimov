@@ -69,3 +69,8 @@
            :getPublications
            :paramUpdate
            :publisherUpdate))))
+
+
+(defn start-server
+  ([& {:keys [port handler] :or {port 8080}}]
+     (run-jetty handler {:port port :join? false})))

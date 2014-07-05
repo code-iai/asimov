@@ -67,7 +67,7 @@
          (reply-error! (format "Mismatched md5:%s/%s"
                                (:md5 msg-def)
                                (:md5sum inh)))
-         (and (u/lookup node [:conf :pedantic?])
+         (and (get-in node [:conf :pedantic?])
               (not= (:cat msg-def) (:message_definition inh)))
          (reply-error! (format "Mismatched cat:%s/%s"
                                (:cat msg-def)
@@ -92,4 +92,4 @@
 
 (defn listen! [node]
   (let [handler (handler-fn node)]
-    (a/start-tcp-server handler {:port (u/lookup node :port)})))
+    (a/start-tcp-server handler {:port (get node :port)})))
