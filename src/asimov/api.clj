@@ -22,8 +22,9 @@
   (let [node-name (util/lookup node :name)
         master-url (util/to-http-addr (util/lookup node :master-addr))
         node-url (util/to-http-addr (util/lookup node :addr))
-        providers []
         {providers :provider-urls}
+        msg-name (get-in (x/get-topic-types master-url node-name)
+                         [:topic-types topic])
         (x/register-subscriber master-url
                                node-name topic msg-name node-url)
         provider (util/resolve-ip node (first providers)) ;;todo subscribe to all providers
