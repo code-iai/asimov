@@ -61,7 +61,8 @@
   ([node id raw]
      (let [[_ package name] (re-matches #"([^/]*)/([^/]*)")]
        (swap! node update-in [:msg-defs]
-              #(->> {id
+              #(->> {{:name name
+                      :package package}
                      {:name name
                       :package package
                       :raw raw}}

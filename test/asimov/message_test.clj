@@ -206,10 +206,12 @@ float64[36] covariance
 
 (deftest integration-load-test
   (testing "Raw message loading from disk should work."
-    (are [msgs exp] (some #{exp} msgs)
+    (are [msgs sel exp] (= exp (msgs sel))
          (-> "resources/msgs"
              clojure.java.io/file
              msgs-in-dir)
+         {:name "PoseWithCovariance"
+          :package "geometry_msgs"}
          {:name "PoseWithCovariance"
           :package "geometry_msgs"
           :raw
@@ -235,26 +237,34 @@ float64[36] covariance
                :name "tire"}
               {:package "round"
                :name "steeringwheel"}}}
-           (dep-graph #{{:package "round"
-                         :name "tire"
-                         :dependencies []}
-                        {:package "vehicle"
-                         :name "car"
-                         :dependencies [{:package "round"
-                                         :name "tire"}
-                                        {:package "round"
-                                         :name "steeringwheel"}]}})))))
+           (dep-graph {{:package "round"
+                        :name "tire"}
+                       {:package "round"
+                        :name "tire"
+                        :dependencies []}
+                       {:package "vehicle"
+                        :name "car"}
+                       {:package "vehicle"
+                        :name "car"
+                        :dependencies [{:package "round"
+                                        :name "tire"}
+                                       {:package "round"
+                                        :name "steeringwheel"}]}})))))
 
 (deftest ensuring-dependencies
   (testing "Ensuring dependencies is the identity if all dependencies exist."
     (are [inp] (= inp (ensure-complete-dependencies inp))
-         #{{:package "round"
-            :name "tire"
-            :dependencies []}
-           {:package "vehicle"
-            :name "car"
-            :dependencies [{:package "round"
-                            :name "tire"}]}}))
+         {{:package "round"
+           :name "tire"}
+          {:package "round"
+           :name "tire"
+           :dependencies []}
+          {:package "vehicle"
+           :name "car"}
+          {:package "vehicle"
+           :name "car"
+           :dependencies [{:package "round"
+                           :name "tire"}]}}))
 
   (testing "Ensuring dependencies will throw an exception with incomplete dependencies."
     (is (thrown-with-data? #"Missing dependencies!"
@@ -264,26 +274,34 @@ float64[36] covariance
                                         #{{:package "round"
                                            :name "steeringwheel"}}}}}
                            (ensure-complete-dependencies
-                            #{{:package "round"
-                               :name "tire"
-                               :dependencies #{}}
-                              {:package "vehicle"
-                               :name "car"
-                               :dependencies [{:package "round"
-                                               :name "tire"}
-                                              {:package "round"
-                                               :name "steeringwheel"}]}})))))
+                            {{:package "round"
+                              :name "tire"}
+                             {:package "round"
+                              :name "tire"
+                              :dependencies []}
+                             {:package "vehicle"
+                              :name "car"}
+                             {:package "vehicle"
+                              :name "car"
+                              :dependencies [{:package "round"
+                                              :name "tire"}
+                                             {:package "round"
+                                              :name "steeringwheel"}]}})))))
 
 (deftest cycle-detection
   (testing  "ensure-nocycles is the identity if there are no cycles in the dependency graph"
     (are [exp] (= exp (ensure-nocycles exp))
-         #{{:package "round"
-            :name "tire"
-            :dependencies []}
-           {:package "vehicle"
-            :name "car"
-            :dependencies [{:package "round"
-                            :name "tire"}]}})
+         {{:package "round"
+           :name "tire"}
+          {:package "round"
+           :name "tire"
+           :dependencies []}
+          {:package "vehicle"
+           :name "car"}
+          {:package "vehicle"
+           :name "car"
+           :dependencies [{:package "round"
+                           :name "tire"}]}})
     (testing "ensure-dependencies will throw an exception when there are cycles in the dependency graphs"
       (is (thrown-with-data? #"Can't load circular message definitions!"
                              #{{:tag :asimov.message/circular-msg
@@ -300,26 +318,26 @@ float64[36] covariance
                                            {:package "vehicle",
                                             :name "car"}]}}}
                              (ensure-nocycles
-                              #{{:package "round"
-                                 :name "tire"
-                                 :dependencies
-                                 [{:package "vehicle"
-                                   :name "car"}]}
-                                {:package "vehicle"
-                                 :name "car"
-                                 :dependencies [{:package "round"
-                                                 :name "tire"}]}}))))))
+                              {{:package "round"
+                                :name "tire"}
+                               {:package "round"
+                                :name "tire"
+                                :dependencies
+                                [{:package "vehicle"
+                                  :name "car"}]}
+                               {:package "vehicle"
+                                :name "car"}
+                               {:package "vehicle"
+                                :name "car"
+                                :dependencies [{:package "round"
+                                                :name "tire"}]}}))))))
 
 (deftest integration-full-test
   (let [msgs (-> "resources/msgs"
                  clojure.java.io/file
                  msgs-in-dir
                  annotate-all)]
-    (are [sel exp] (= exp (select-keys
-                           (first (get (index msgs
-                                              [:name :package])
-                                       sel))
-                           (keys exp)))
+    (are [sel exp] (= exp (msgs sel))
          {:name "PoseWithCovariance"
           :package "geometry_msgs"}
          {:name "PoseWithCovariance"

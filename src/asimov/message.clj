@@ -1,6 +1,7 @@
 (ns asimov.message
   (:require [clojure.set :as set]
             [clojure.core.match :refer [match]]
+            [clojure.algo.generic.functor :refer [fmap]]
             [asimov.util :as util]
             [instaparse.core :as insta]
             [pandect.core :as hsh]
@@ -133,8 +134,9 @@
 
 (defn dependencies
   "Annotates the set of other messages required by this message."
-  [{:keys [declarations] :as msg} msgs]
-  (->> declarations
+  [msg msgs]
+  (->> msg
+       :declarations
        (map :type)
        (filter #(#{:message} (:tag %)))
        (map #(select-keys % [:package :name]))
@@ -149,26 +151,27 @@
      :name message}))
 
 (defn msgs-in-dir [root]
-  (->> root
-       file-seq
-       (filter #(.isFile %))
-       (map (fn [f] (when-let [id (parse-path (.getCanonicalPath f))]
-                     (assoc id :raw (slurp f)))))
-       (remove nil?)))
+  (as-> root x
+        (file-seq x)
+        (filter #(.isFile %) x)
+        (map (fn [f] (when-let [id (parse-path (.getCanonicalPath f))]
+                      (assoc id :raw (slurp f)))) x)
+        (remove nil? x)
+        (set/index x [:name :package])
+        (fmap first x)
+        (into {} x)))
 
 (defn dep-graph [msgs]
-  (into {} (map (fn [msg]
-                  [(select-keys msg [:name :package])
-                   (into #{} (:dependencies msg))]) msgs)))
+  (fmap #(into #{} (:dependencies %))
+        msgs))
 
 (defn ensure-complete-dependencies [msgs]
   (let [dg (dep-graph msgs)
         found-msgs (into #{} (keys dg))]
     (if-let [missing-deps (->> dg
-                               (map (fn [[msg deps]]
-                                      [msg (clojure.set/difference
-                                            deps
-                                            found-msgs)]))
+                               (fmap #(clojure.set/difference
+                                       %
+                                       found-msgs))
                                (filter (fn [[msg deps]]
                                          (not-empty deps)))
                                (into {})
@@ -231,29 +234,26 @@
     (assoc msg :md5 md5)))
 
 (defn annotate-md5s [msgs]
-  (let [indexed-msgs (set/index msgs [:name :package])]
-    (->>
-     msgs
-     (mapcat (fn [msg] (tree-seq #(not-empty (:dependencies %))
-                                #(map (comp first indexed-msgs) (:dependencies %))
-                                msg)))
-     reverse
-     distinct
-     (reduce (fn [msgs msg]
-               (let [amsg (annotate-md5 msg msgs)
-                     asmg-name (select-keys amsg [:name :package])]
-                 (assoc msgs
-                   asmg-name amsg)))
-             {})
-     vals
-     (into #{}))))
+  (->>
+   msgs
+   vals
+   (mapcat (fn [msg] (tree-seq #(not-empty (:dependencies %))
+                              #(map msgs (:dependencies %))
+                              msg)))
+   reverse
+   distinct
+   (reduce (fn [msgs msg]
+             (let [amsg (annotate-md5 msg msgs)
+                   asmg-name (select-keys amsg [:name :package])]
+               (assoc msgs
+                 asmg-name amsg)))
+           {})))
 
 (defn cat [msg msgs]
-  (let [indexed-msgs (set/index msgs [:name :package])
-        separator (str (apply str (repeat 80 "=")) "\n")
+  (let [separator (str (apply str (repeat 80 "=")) "\n")
         dep-text (->> msg
                       (tree-seq #(not-empty (:dependencies %))
-                                #(map (comp first indexed-msgs) (:dependencies %)))
+                                #(map msgs (:dependencies %)))
                       distinct
                       rest
                       (map (fn [m]
@@ -266,9 +266,7 @@
     (str (:raw msg) "\n" dep-text)))
 
 (defn annotate [msgs k f]
-  (->> msgs
-       (mapv #(assoc % k (f % msgs)))
-       (into #{})))
+  (fmap #(assoc % k (f % msgs)) msgs))
 
 (def primitive-frame {:bool    (g/enum :ubyte {false 0, true 1})
                       :int8    :byte
@@ -326,7 +324,7 @@
                  :name t
                  :package p}}
          [(keyword n)
-          (message-frame (-> msgs (get {:package p :name t}) first)
+          (message-frame (msgs {:package p :name t})
                          msgs)]
          {:tag :tuple
           :name n
@@ -335,7 +333,7 @@
                  :name t
                  :package p}}
          [(keyword n)
-          (repeat a (message-frame (-> msgs (get {:package p :name t}) first)
+          (repeat a (message-frame (msgs {:package p :name t})
                                    msgs))]
          {:tag :list
           :name n
@@ -344,7 +342,7 @@
                  :package p}}
          [(keyword n)
           (g/finite-frame :uint32-le
-                          (g/repeated (message-frame (-> msgs (get {:package p :name t}) first)
+                          (g/repeated (message-frame (msgs {:package p :name t})
                                                      msgs)
                                       :prefix :none))]))
 
@@ -355,7 +353,7 @@
 
 (defn frame [msg msgs]
   (g/finite-frame :uint32-le
-                  (message-frame msg (set/index msgs [:name :package]))))
+                  (message-frame msg msgs)))
 
 (defn annotate-all [msgs]
   (-> msgs
