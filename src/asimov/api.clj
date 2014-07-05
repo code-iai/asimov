@@ -11,6 +11,8 @@
   (atom {:name name
          :address [(util/localhost) port]
          :master-url master-url
+         :msg-defs {}
+         :srv-defs {}
          :xml-server (x/start-server :port port
                                      :handler (x/slave-handler n))
          :tcp-server nil)})
