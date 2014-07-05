@@ -9,8 +9,6 @@
             [taoensso.timbre :as t]
             [asimov.util :as u]))
 
-(alter-var-root #'*out* (constantly *out*))
-
 (def header-frame
   (g/finite-frame :uint32-le
                   (g/repeated (g/finite-frame :uint32-le
@@ -42,10 +40,7 @@
                                    :topic topic
                                    :md5sum (:md5 msg)
                                    :type (str (:package msg) "/" (:name msg))}))
-    (println "header:" @inh)
     (i/decode-channel ch< (:frame msg))))
-
-(def h (atom nil))
 
 (defn handler-fn[node]
   (fn [ch> client-info]
@@ -53,7 +48,6 @@
       (t/trace "Incomming onnection:" client-info)
       (let [n @node
             [ch< inh] (decode-header (l/mapcat* f/bytes->byte-buffers ch>))
-            _ (reset! h (second (decode-header (l/mapcat* f/bytes->byte-buffers ch>))))
             inh @inh
             reply! #(l/enqueue ch> (encode-header %))
             reply-error! (fn [e] (t/error client-info ":" e)
@@ -67,7 +61,7 @@
          (reply-error! (format "Mismatched md5:%s/%s"
                                (:md5 msg-def)
                                (:md5sum inh)))
-         (and (get-in node [:conf :pedantic?])
+         (and (get-in n [:conf :pedantic?])
               (not= (:cat msg-def) (:message_definition inh)))
          (reply-error! (format "Mismatched cat:%s/%s"
                                (:cat msg-def)
@@ -92,4 +86,5 @@
 
 (defn listen! [node]
   (let [handler (handler-fn node)]
-    (a/start-tcp-server handler {:port (get node :port)})))
+    (a/start-tcp-server handler {:port 10000}))) ;TODO: Choose random port, start server, add port on node or return it?
+

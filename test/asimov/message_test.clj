@@ -313,7 +313,8 @@ float64[36] covariance
 (deftest integration-full-test
   (let [msgs (-> "resources/msgs"
                  clojure.java.io/file
-                 load-msgs)]
+                 msgs-in-dir
+                 annotate-all)]
     (are [sel exp] (= exp (select-keys
                            (first (get (index msgs
                                               [:name :package])
