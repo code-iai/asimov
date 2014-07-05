@@ -1,17 +1,13 @@
-(ns asimov.master
+(ns asimov.xmlrpc
   (:require
+   [lamina.core :refer :all]
+   [asimov.configuration :refer :all]
+   [ring.adapter.jetty :refer :all]
+   [aleph.http :refer :all]
    [compojure
-    [core :as compojure :refer [defroutes GET POST]]
+    [core :as compojure :refer [defroutes GET POST ANY]]
     [handler :refer [api]]]
-   [asimov.util :as util]
-   [asimov.configuration :as config]
    [necessary-evil.core :as xml-rpc]))
-
-;;for testing locally
-
-(def ^:dynamic *ros-master-url* "http://192.168.56.101:11311/")
-
-;(xml-rpc/call *ros-master-url* :getSystemState "/")
 
 (defn gen-return-map [code status-message]
   {:success? (if (= 1 code) true false)
@@ -33,7 +29,7 @@
 (defn register-publisher
   ([publisher-node topic msg publisher-url]
      (register-publisher *ros-master-url* publisher-node
-                          topic msg publisher-url))
+                         topic msg publisher-url))
   ([master-url publisher-node topic msg publisher-url]
      (let [[code message provider-url]
            (xml-rpc/call master-url :registerPublisher
@@ -52,6 +48,25 @@
        (-> (gen-return-map code message)
            (assoc :host host :port port :protocol protocol)))))
 
-(comment
-  (let [res (register-subscriber "/asimov" "/turtle1/command_velocity/" "turtlesim/Velocity" "http://localhost:8080")]
-    (request-topic (:provider-url res) "/asimov" "turtle1/command_velocity" [["TCPROS"]])))
+(defn unimpl [& methods]
+  (into {}
+        (for [m methods]
+          [m (fn [& args]
+               (t/log "Noop " m " with " args)
+               true)])))
+
+(defn slave-handler [atom]
+  (xml-rpc/end-point
+   (merge {:requestTopic (fn [& args]
+                           [1 "status message" ["TCPROS" (first (:addr @atom))
+                                                (:port @atom)]])}
+          (unimpl
+           :getBusStats
+           :getBusInfo
+           :getMasterUri
+           :shutdown
+           :getPid
+           :getSubscriptions
+           :getPublications
+           :paramUpdate
+           :publisherUpdate))))

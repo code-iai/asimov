@@ -57,13 +57,6 @@
                    ByteBuffer/wrap)]
     bytes))
 
-(defn lookup
-  ([node path] (lookup node path nil))
-  ([node path not-found]
-     (let [path (if (coll? path) path [path])]
-       (get-in @node path (config/cfg path not-found)))))
-
-
 (defn- numeric-address?
   [host]
   (re-matches #"[0-9.]*" host))
