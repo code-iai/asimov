@@ -1,18 +1,19 @@
-(ns asimov.api.node
-  (:require [asimov.xmlrpc :as x]
-            [asimov.configuration :as config]
+(ns asimov.api
+  (:require [clojure.set :as set]
+            [asimov.xmlrpc :as x]
             [asimov.tcpros :as tcpros]
             [asimov.util :as util]
             [asimov.message :as msgs]
             [taoensso.timbre :as timbre
              :refer [log trace  debug  info  warn  error  fatal  report]]))
 
-(defn init! [master-url name]
+(defn init-node! [master-url name]
   (atom {:name name
+         :address [(util/localhost) port]
          :master-url master-url
-         :address [(config/cfg :localhost) port]
-         :server (x/start-server :port port
-                                           :handler (x/slave-handler n))}))
+         :xml-server (x/start-server :port port
+                                     :handler (x/slave-handler n))
+         :tcp-server nil)})
 
 (defn subscribe! [node topic]
   (let [node-name (util/lookup node :name)
@@ -28,8 +29,7 @@
                          topic [["TCPROS"]])
         host (util/resolve-host node host )
         msg (util/msg-by-name node msg-name)
-    (tcpros/subscribe! host port node-name topic msg)))
-
+        (tcpros/subscribe! host port node-name topic msg))))
 
 (defn publish! [node topic msg-name]
   (let [msg (util/msg-by-name node msg-name)
@@ -45,3 +45,25 @@
     (let [res (asimov.tcpros/listen! node)]
       (x/register-publisher master-url node-name topic msg-name node-url)
       res)))
+
+(defn add-message!
+  ([node path]
+     (swap! node update-in [:msg-defs]
+            #(->> path
+                  clojure.java.io/file
+                  msgs/msgs-in-dir
+                  (merge %)
+                  msgs/annotate-all)))
+  ([node id raw]
+     (let [[_ package name] (re-matches #"([^/]*)/([^/]*)")]
+       (swap! node update-in [:msg-defs]
+              #(->> {id
+                     {:name name
+                      :package package
+                      :raw raw}}
+                    (merge %)
+                    msgs/annotate-all)))))
+
+(defn add-service!
+  ([node path] (throw (ex-info "Not implemented.")))
+  ([node package name raw] (throw (ex-info "Not implemented."))))

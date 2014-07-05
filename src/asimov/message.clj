@@ -357,10 +357,8 @@
   (g/finite-frame :uint32-le
                   (message-frame msg (set/index msgs [:name :package]))))
 
-(defn load-msgs [root]
-  (-> root
-      clojure.java.io/file
-      msgs-in-dir
+(defn annotate-all [msgs]
+  (-> msgs
       (annotate :declarations declarations)
       (annotate :dependencies dependencies)
       ensure-nocycles
