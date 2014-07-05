@@ -62,7 +62,7 @@
 
 (defn resolve-host [node host]
   (or (and (numeric-address? host) host)
-      (lookup node [:master-addr 0])))
+      (:master-url node)))
 
 (defn resolve-ip
   "resolves the ip-address - replaces hostnames with ip of the ros
@@ -82,14 +82,3 @@
   "expects [host port] and returns \"http://<host>:<port>\""
   [[host port]]
   (str "http://" host ":" port "/"))
-
-
-(defn msg-by-name
-  "looks up the message by name in the message definitions of the node
-   If no node is specified defaults to global config"
-  [node msg-name]
-  (let [[package name] (.split msg-name "/")]
-    (as-> (lookup node :messages) x
-          (clojure.set/index x [:name :package])
-          (x {:name name :package package})
-          (first x))))
