@@ -1,9 +1,9 @@
 (ns asimov.xmlrpc
   (:require
    [lamina.core :refer :all]
-   [asimov.configuration :refer :all]
    [ring.adapter.jetty :refer :all]
    [aleph.http :refer :all]
+   [taoensso.timbre :as t]
    [compojure
     [core :as compojure :refer [defroutes GET POST ANY]]
     [handler :refer [api]]]
@@ -16,37 +16,36 @@
 
 
 (defn register-subscriber
-  ([subscriber-node topic msg subscriber-url]
-     (register-subscriber *ros-master-url* subscriber-node
-                          topic msg subscriber-url))
-  ([master-url subscriber-node topic msg subscriber-url]
-     (let [[code message provider-url]
-           (xml-rpc/call master-url :registerSubscriber
-                         subscriber-node topic msg subscriber-url)]
-       (-> (gen-return-map code message)
-           (assoc :provider-urls provider-url)))))
+  [master-url subscriber-node topic msg subscriber-url]
+  (let [[code message provider-url]
+        (xml-rpc/call master-url :registerSubscriber
+                      subscriber-node topic msg subscriber-url)]
+    (-> (gen-return-map code message)
+        (assoc :provider-urls provider-url))))
 
 (defn register-publisher
-  ([publisher-node topic msg publisher-url]
-     (register-publisher *ros-master-url* publisher-node
-                         topic msg publisher-url))
-  ([master-url publisher-node topic msg publisher-url]
-     (let [[code message provider-url]
-           (xml-rpc/call master-url :registerPublisher
-                         publisher-node topic msg publisher-url)]
-       (-> (gen-return-map code message)
-           (assoc :subscriber-urls provider-url)))))
+  [master-url publisher-node topic msg publisher-url]
+  (let [[code message provider-url]
+        (xml-rpc/call master-url :registerPublisher
+                      publisher-node topic msg publisher-url)]
+    (-> (gen-return-map code message)
+        (assoc :subscriber-urls (into {} provider-url)))))
 
 (defn request-topic
-  ([subscriber-node topic protocols]
-     (request-topic *ros-master-url* subscriber-node topic protocols))
-  ([slave-url subscriber-node topic protocols]
-     (let [res (xml-rpc/call slave-url :requestTopic
-                             subscriber-node topic protocols)
-           [code message [protocol host port]]
-           (if (= (count res) 2) [(first res) "" (second res)] res)]
+  [slave-url subscriber-node topic protocols]
+  (let [res (xml-rpc/call slave-url :requestTopic
+                          subscriber-node topic protocols)
+        [code message [protocol host port]]
+        (if (= (count res) 2) [(first res) "" (second res)] res)]
+    (-> (gen-return-map code message)
+        (assoc :host host :port port :protocol protocol))))
+
+(defn get-topic-types
+  ([master-url node-name]
+     (let [res (xml-rpc/call master-url :getTopicTypes node-name)
+           [code message topic-types] res]
        (-> (gen-return-map code message)
-           (assoc :host host :port port :protocol protocol)))))
+           (assoc :topic-types topic-types)))))
 
 (defn unimpl [& methods]
   (into {}
