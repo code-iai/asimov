@@ -87,3 +87,4 @@
 (defn listen! [node]
   (let [handler (handler-fn node)]
     (a/start-tcp-server handler {:port 10000}))) ;TODO: Choose random port, start server, add port on node or return it?
+

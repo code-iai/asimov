@@ -82,3 +82,9 @@
   "expects [host port] and returns \"http://<host>:<port>\""
   [[host port]]
   (str "http://" host ":" port "/"))
+
+
+(defn localhost
+  "currently stub TODO"
+  []
+  "http://192.168.56.1")
