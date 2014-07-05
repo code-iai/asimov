@@ -337,7 +337,8 @@ float64[36] covariance
                  clojure.java.io/file
                  msgs-in-dir
                  annotate-all)]
-    (are [sel exp] (= exp (msgs sel))
+    (are [sel exp] (= exp (dissoc (msgs sel)
+                                  :frame))
          {:name "PoseWithCovariance"
           :package "geometry_msgs"}
          {:name "PoseWithCovariance"
