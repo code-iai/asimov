@@ -55,12 +55,13 @@
 
 (defn add-message!
   ([node path]
-     (swap! node update-in [:msg-defs]
-            #(->> path
-                  clojure.java.io/file
-                  msgs/msgs-in-dir
-                  (merge %)
-                  msgs/annotate-all)))
+     (let [new-msgs (->> path
+                         clojure.java.io/file
+                         msgs/msgs-in-dir)]
+       (swap! node update-in [:msg-defs]
+              #(->> new-msgs
+                    (merge %)
+                    msgs/annotate-all))))
   ([node id raw]
      (let [[_ package name] (re-matches #"([^/]*)/([^/]*)")]
        (swap! node update-in [:msg-defs]
