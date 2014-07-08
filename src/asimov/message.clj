@@ -364,3 +364,7 @@
       annotate-md5s
       (annotate :cat cat)
       (annotate :frame frame)))
+
+(defn parse-id [id]
+  (let [[_ package name] (re-matches #"([^/]*)/([^/]*)" id)]
+       {:package package :name name}))

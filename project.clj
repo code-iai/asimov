@@ -8,6 +8,7 @@
                  [org.clojure/core.async "0.1.303.0-886421-alpha"]
                  [org.clojure/core.match "0.2.1"]
                  [org.clojure/algo.generic "0.1.2"]
+                 [org.clojure/tools.trace "0.7.8"]
                  [com.taoensso/timbre "3.2.0"]
                  [gui-diff "0.6.5"]
                  [ring "1.2.2"]

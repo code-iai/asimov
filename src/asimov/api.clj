@@ -4,56 +4,63 @@
             [asimov.tcpros :as tcpros]
             [asimov.util :as util]
             [asimov.message :as msgs]
-            [taoensso.timbre :as timbre
-             :refer [log trace  debug  info  warn  error  fatal  report]]))
+            [taoensso.timbre :as t]))
 
-(defn init-node! [master-url name]
+(defn init-node! [master-url master-port name]
   (let [n (atom {:name name
-                 :address [(util/localhost) 8080]
-                 :master-url master-url
+                 :client {:host "192.168.56.1"}
+                 :master {:host master-url :port master-port}
                  :topics #{}
                  :msg-defs {}
                  :srv-defs {}
-                 :tcp-server nil})]
-    (swap! n :asoc
+                 :hosts {}
+                 :tcp-server nil
+                 :xml-server nil})]
+    (swap! n assoc
            :xml-server
-           (x/start-server :port 8080
-                           :handler (x/slave-handler n)))))
+           (x/listen! n))
+    (swap! n assoc
+           :tcp-server
+           (tcpros/listen! n))
+    n))
 
 (defn subscribe! [node topic]
-  (let [node-name (get node :name)
-        master-url (util/to-http-addr (get node :master-addr))
-        node-url (util/to-http-addr (get node :addr))
-        msg-name (get-in (x/get-topic-types master-url node-name)
+  (let [node @node
+        node-name (:name node) 
+        master-url (util/to-http-addr (:master node))
+        node-url (util/to-http-addr (assoc (:client node)
+                                      :port
+                                      (get-in node [:xml-server :port])))
+        msg-id (get-in (x/get-topic-types master-url node-name)
                          [:topic-types topic])
-
-        {providers :provider-urls} 
+        {providers :provider-urls}
         (x/register-subscriber master-url
-                               node-name topic msg-name node-url)
+                               node-name topic msg-id node-url)
         provider (util/resolve-ip node (first providers)) ;;todo subscribe to all providers
-        {port :port host :host}
-        (x/request-topic (util/to-http-addr provider) node-name
-                         topic [["TCPROS"]])
-        host (util/resolve-host node host)
-        msg (get-in @node [:msg-defs msg-name])]
-        (tcpros/subscribe! host port node-name topic msg)))
+        addr
+        (t/spy :trace
+               (x/request-topic (util/to-http-addr provider) name
+                                topic [["TCPROS"]]))
+        addr (assoc addr :host "192.168.56.101")
+        msg (get-in node [:msg-defs (msgs/parse-id msg-id)])]
+    (tcpros/subscribe! addr name topic msg)))
 
-(defn publish! [node topic msg-name]
-  (let [msg (get-in @node [:msg-defs msg-name])
-        node-name (get node :name)
-        master-url (util/to-http-addr (:master-addr node))
-        node-url (util/to-http-addr (:addr node))
+(defn publish! [node topic msg-id]
+  (let [node @node
+        msg (get-in node [:msg-defs (msgs/parse-id msg-id)])
+        node-name (:name node)
+        master-url (util/to-http-addr (:master node))
+        node-url (util/to-http-addr (:client node))
         topic-map {topic {:msg-def msg
                           :connections #{}}}]
     (swap! node assoc
            :topics topic-map
-           :port 10000
            :conf {:pedantic? false})
     (let [res (asimov.tcpros/listen! node)]
-      (x/register-publisher master-url node-name topic msg-name node-url)
+      (x/register-publisher master-url node-name topic msg-id node-url)
       res)))
 
-(defn add-message!
+(defn add-msgs!
   ([node path]
      (let [new-msgs (->> path
                          clojure.java.io/file
@@ -63,16 +70,14 @@
                     (merge %)
                     msgs/annotate-all))))
   ([node id raw]
-     (let [[_ package name] (re-matches #"([^/]*)/([^/]*)")]
+     (let [msg (msgs/parse-id id)]
        (swap! node update-in [:msg-defs]
-              #(->> {{:name name
-                      :package package}
-                     {:name name
-                      :package package
-                      :raw raw}}
+              #(->> {msg
+                     (assoc msg :raw raw)}
                     (merge %)
-                    msgs/annotate-all)))))
+                    msgs/annotate-all))
+       node)))
 
-(defn add-service!
+(defn add-srvs!
   ([node path] (throw (ex-info "Not implemented.")))
   ([node package name raw] (throw (ex-info "Not implemented."))))

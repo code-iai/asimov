@@ -45,7 +45,7 @@
      (let [res (xml-rpc/call master-url :getTopicTypes node-name)
            [code message topic-types] res]
        (-> (gen-return-map code message)
-           (assoc :topic-types topic-types)))))
+           (assoc :topic-types (into {} topic-types))))))
 
 (defn unimpl [& methods]
   (into {}
@@ -54,7 +54,7 @@
                (t/log "Noop " m " with " args)
                true)])))
 
-(defn slave-handler [atom]
+(defn handler-fn [atom]
   (xml-rpc/end-point
    (merge {:requestTopic (fn [& args]
                            [1 "status message" ["TCPROS" (first (:addr @atom))
@@ -71,6 +71,10 @@
            :publisherUpdate))))
 
 
-(defn start-server
-  ([& {:keys [port handler] :or {port 8080}}]
-     (run-jetty handler {:port port :join? false})))
+(defn listen! [node]
+  (let [s (run-jetty (handler-fn node) {:port 0 :join? false})
+        p (-> s
+              .getConnectors
+              first
+              .getLocalPort)]
+    {:server s :port p}))

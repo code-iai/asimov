@@ -56,35 +56,13 @@
                    ByteBuffer/wrap)]
     bytes))
 
-(defn- numeric-address?
-  [host]
-  (re-matches #"[0-9.]*" host))
-
-(defn resolve-host [node host]
-  (or (and (numeric-address? host) host)
-      (:master-url node)))
-
-(defn resolve-ip
-  "resolves the ip-address - replaces hostnames with ip of the ros
-   master the node is talking to. Without node, lookup the ip in the
-   global configuration. Returns [host port]"
-  [node ip-address]
-  (and (.startsWith ip-address "http://")
-       (let [ip-address (.substring ip-address 7) ;; strip away http://
-             [host port] (.split ip-address ":")
-             host (last (.split host "/"))]
-         [(or (and (numeric-address? host) host)
-              (resolve-host node host))
-          port])))
-
-
 (defn to-http-addr
   "expects [host port] and returns \"http://<host>:<port>\""
-  [[host port]]
-  (str "http://" host ":" port "/"))
+  [addr]
+  (str "http://" (:host addr) ":" (:port addr) "/"))
 
 
 (defn localhost
   "currently stub TODO"
   []
-  "http://192.168.56.1")
+  "192.168.56.1")

@@ -29,9 +29,8 @@
                       (map (fn [[k v]] [(keyword k) v]))
                       (into {})))]))
 
-(defn subscribe! [host port callerid topic msg]
-  (let [ch> (->> {:host host
-                  :port port}
+(defn subscribe! [addr callerid topic msg]
+  (let [ch> (->> addr
                  a/tcp-client
                  l/wait-for-result)
         [ch< inh] (decode-header (l/mapcat* f/bytes->byte-buffers ch>))]
@@ -51,7 +50,7 @@
             inh @inh
             reply! #(l/enqueue ch> (encode-header %))
             reply-error! (fn [e] (t/error client-info ":" e)
-                                (reply! {:error e}))
+                           (reply! {:error e}))
             msg-def (get-in n [:topics (:topic inh) :msg-def])]
         (t/trace "received Header: " inh)
         (cond
@@ -84,7 +83,19 @@
                                    [:topics (:topic inh) :connections]
                                    conj {:client client-info :chan ch})))))))))
 
-(defn listen! [node]
-  (let [handler (handler-fn node)]
-    (a/start-tcp-server handler {:port 10000}))) ;TODO: Choose random port, start server, add port on node or return it?
+(defn rand-port []
+  (+ (rand-int (- 65535 49152)) 49152))
 
+(defn listen! [node]
+  (let [handler (handler-fn node)
+        ports (take 1000 (distinct (repeatedly rand-port)))
+        server (some #(try
+                        {:server (a/start-tcp-server handler {:port %})
+                         :port %}
+                        (catch org.jboss.netty.channel.ChannelException e
+                          (t/log :info "caught exception: " e)))
+                     ports)]
+    (if server
+      server
+      (throw (ex-info "Could not find a free port."
+                      {:type ::no-free-port :ports ports})))))
