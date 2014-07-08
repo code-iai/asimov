@@ -30,7 +30,7 @@
                       (into {})))]))
 
 (defn subscribe! [addr callerid topic msg]
-  (let [ch> (->> addr
+  (let [ch> (->> (select-keys addr [:host :port])
                  a/tcp-client
                  l/wait-for-result)
         [ch< inh] (decode-header (l/mapcat* f/bytes->byte-buffers ch>))]

@@ -1,23 +1,33 @@
 (ns asimov.util
   (:require [clojure.test :refer :all]
-            [byte-streams :as b])
-  (:import java.nio.ByteBuffer))
+            [byte-streams :as b]
+            [clojure.java.io :as io])
+  (:import java.nio.ByteBuffer
+           java.net.URL))
 
 (defn cycles
   "Detects and returns cycles in dependency graphs.
   Code adapted from Cris Grangers https://www.refheap.com/20384"
   [graph]
-  (letfn [(find-cycles [cur {:keys [seen root stack graph] :as state}]
-            (first (filter identity (for [c (remove seen cur)]
-                                      (if (= c root)
-                                        (conj stack c)
-                                        (find-cycles (get graph c) (-> state
-                                                                       (update-in [:stack] conj c)
-                                                                       (update-in [:seen] conj c))))))))]
+  (letfn [(find-cycles
+            [cur {:keys [seen root stack graph] :as state}]
+            (first (filter identity
+                           (for [c (remove seen cur)]
+                             (if (= c root)
+                               (conj stack c)
+                               (find-cycles (get graph c)
+                                            (-> state
+                                                (update-in [:stack] conj c)
+                                                (update-in [:seen] conj c))))))))]
     (into #{}
           (filter identity
                   (for [[root deps] graph
-                        :let [stack (find-cycles deps {:seen #{} :stack [root] :graph graph :root root})]]
+                        :let [stack (find-cycles
+                                     deps
+                                     {:seen #{}
+                                      :stack [root]
+                                      :graph graph
+                                      :root root})]]
                     stack)))))
 
 (defmethod assert-expr 'thrown-with-data? [msg form]
@@ -56,10 +66,20 @@
                    ByteBuffer/wrap)]
     bytes))
 
-(defn to-http-addr
+(defn serialize-addr
   "expects [host port] and returns \"http://<host>:<port>\""
   [addr]
-  (str "http://" (:host addr) ":" (:port addr) "/"))
+  (str (URL. (or (:protocol addr) "http")
+             (:host addr)
+             (:port addr)
+             "")))
+
+(defn deserialize-addr
+  [addr]
+  (let [url (io/as-url addr)]
+    {:protocol (.getProtocol url)
+     :host (.getHost url)
+     :port (.getPort url)}))
 
 
 (defn localhost

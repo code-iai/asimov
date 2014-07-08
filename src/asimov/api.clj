@@ -24,33 +24,43 @@
            (tcpros/listen! n))
     n))
 
+(defn lookup-host [addr node]
+  (update-in addr [:host]
+             #(or ((:hosts node) %)
+                  %)))
+
 (defn subscribe! [node topic]
   (let [node @node
-        node-name (:name node) 
+        node-name (:name node)
         master-url (util/to-http-addr (:master node))
         node-url (util/to-http-addr (assoc (:client node)
                                       :port
                                       (get-in node [:xml-server :port])))
         msg-id (get-in (x/get-topic-types master-url node-name)
-                         [:topic-types topic])
+                       [:topic-types topic])
         {providers :provider-urls}
         (x/register-subscriber master-url
                                node-name topic msg-id node-url)
-        provider (util/resolve-ip node (first providers)) ;;todo subscribe to all providers
-        addr
-        (t/spy :trace
-               (x/request-topic (util/to-http-addr provider) name
-                                topic [["TCPROS"]]))
-        addr (assoc addr :host "192.168.56.101")
+        provider (-> providers
+                     first
+                     util/deserialize-addr
+                     (lookup-host node)
+                     util/serialize-addr)
+        ;;todo subscribe to all providers
+        addr (-> provider
+                 (x/request-topic node-name
+                                  topic
+                                  [["TCPROS"]])
+                 (lookup-host node))
         msg (get-in node [:msg-defs (msgs/parse-id msg-id)])]
-    (tcpros/subscribe! addr name topic msg)))
+    (tcpros/subscribe! addr node-name topic msg)))
 
 (defn publish! [node topic msg-id]
   (let [node @node
         msg (get-in node [:msg-defs (msgs/parse-id msg-id)])
         node-name (:name node)
-        master-url (util/to-http-addr (:master node))
-        node-url (util/to-http-addr (:client node))
+        master-url (util/serialize-addr (:master node))
+        node-url (util/serialize-addr (:client node))
         topic-map {topic {:msg-def msg
                           :connections #{}}}]
     (swap! node assoc
