@@ -53,7 +53,7 @@
             reply-error! (fn [e]
                            (t/error client-info ":" e)
                            (reply! {:error e}))
-            topic (get-in n [:sub (:topic inh)])
+            topic (get-in n [:pub (:topic inh)])
             msg-def (:msg-def topic)]
         (t/trace "received Header: " inh)
         (cond

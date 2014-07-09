@@ -54,11 +54,13 @@
                (t/log "Noop " m " with " args)
                true)])))
 
-(defn handler-fn [atom]
+(defn handler-fn [node]
   (xml-rpc/end-point
    (merge {:requestTopic (fn [& args]
-                           [1 "status message" ["TCPROS" (first (:addr @atom))
-                                                (:port @atom)]])}
+                           (let [n @node]
+                             [1 "status message" ["TCPROS"
+                                                  (get-in n [:client :host])
+                                                  (get-in n [:tcp-server :port])]]))}
           (unimpl
            :getBusStats
            :getBusInfo

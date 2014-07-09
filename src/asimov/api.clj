@@ -58,7 +58,7 @@
         msg-id (msgs/serialize-id msg-def)
         master-url (util/serialize-addr (:master n))
         node-url (util/serialize-addr (merge (:client n)
-                                             (:tcp-server n)))
+                                             (:xml-server n)))
         c (a/chan (a/sliding-buffer 1))]
     (swap! node assoc-in
            [:pub topic]
