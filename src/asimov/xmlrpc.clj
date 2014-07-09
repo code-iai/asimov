@@ -25,11 +25,11 @@
 
 (defn register-publisher
   [master-url publisher-node topic msg publisher-url]
-  (let [[code message provider-url]
+  (let [[code message subscriber-urls]
         (xml-rpc/call master-url :registerPublisher
                       publisher-node topic msg publisher-url)]
     (-> (gen-return-map code message)
-        (assoc :subscriber-urls (into {} provider-url)))))
+        (assoc :subscriber-urls subscriber-urls))))
 
 (defn request-topic
   [slave-url subscriber-node topic protocols]

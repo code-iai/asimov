@@ -7,6 +7,7 @@
             [gloss.core  :as g]
             [gloss.io    :as i]
             [taoensso.timbre :as t]
+            [asimov.message :as msg]
             [asimov.util :as u]))
 
 (def header-frame
@@ -29,17 +30,17 @@
                       (map (fn [[k v]] [(keyword k) v]))
                       (into {})))]))
 
-(defn subscribe! [addr callerid topic msg]
+(defn subscribe! [addr callerid topic msg-def]
   (let [ch> (->> (select-keys addr [:host :port])
                  a/tcp-client
                  l/wait-for-result)
         [ch< inh] (decode-header (l/mapcat* f/bytes->byte-buffers ch>))]
-    (l/enqueue ch> (encode-header {:message_definition (:cat msg)
+    (l/enqueue ch> (encode-header {:message_definition (:cat msg-def)
                                    :callerid callerid
                                    :topic topic
-                                   :md5sum (:md5 msg)
-                                   :type (str (:package msg) "/" (:name msg))}))
-    (i/decode-channel ch< (:frame msg))))
+                                   :md5sum (:md5 msg-def)
+                                   :type (msg/serialize-id msg-def)}))
+    (i/decode-channel ch< (:frame msg-def))))
 
 (defn handler-fn[node]
   (fn [ch> client-info]
@@ -49,18 +50,20 @@
             [ch< inh] (decode-header (l/mapcat* f/bytes->byte-buffers ch>))
             inh @inh
             reply! #(l/enqueue ch> (encode-header %))
-            reply-error! (fn [e] (t/error client-info ":" e)
+            reply-error! (fn [e]
+                           (t/error client-info ":" e)
                            (reply! {:error e}))
-            msg-def (get-in n [:topics (:topic inh) :msg-def])]
+            topic (get-in n [:sub (:topic inh)])
+            msg-def (:msg-def topic)]
         (t/trace "received Header: " inh)
         (cond
-         (not msg-def)
+         (not topic)
          (reply-error! (format "No such topic:%s" (:topic inh)))
          (not= (:md5 msg-def) (:md5sum inh))
          (reply-error! (format "Mismatched md5:%s/%s"
                                (:md5 msg-def)
                                (:md5sum inh)))
-         (and (get-in n [:conf :pedantic?])
+         (and (:pedantic? topic)
               (not= (:cat msg-def) (:message_definition inh)))
          (reply-error! (format "Mismatched cat:%s/%s"
                                (:cat msg-def)
@@ -69,7 +72,7 @@
          (do
            (t/trace client-info ":Response seems ok, will reply.")
            (reply! {:md5sum (:md5 msg-def)
-                    :type (str (:package msg-def) "/" (:name msg-def))})
+                    :type (msg/serialize-id msg-def)})
            (t/trace client-info ":Reply send.")
            (let [ch (as/chan)]
              (t/trace client-info ":Will start go loop.")
@@ -79,9 +82,9 @@
                      (recur))
                  (l/close ch>)))
              (t/trace client-info ":Will add new connection.")
-             (t/spy :trace  (swap! node update-in
-                                   [:topics (:topic inh) :connections]
-                                   conj {:client client-info :chan ch})))))))))
+             (swap! node update-in
+                    [:pub (:topic inh) :connections]
+                    conj {:client client-info :chan ch}))))))))
 
 (defn rand-port []
   (+ (rand-int (- 65535 49152)) 49152))

@@ -74,15 +74,10 @@
              (:port addr)
              "")))
 
-(defn deserialize-addr
+(defn parse-addr
   [addr]
   (let [url (io/as-url addr)]
     {:protocol (.getProtocol url)
      :host (.getHost url)
      :port (.getPort url)}))
 
-
-(defn localhost
-  "currently stub TODO"
-  []
-  "192.168.56.1")

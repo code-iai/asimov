@@ -1,5 +1,6 @@
 (ns asimov.api
   (:require [clojure.set :as set]
+            [clojure.core.async :as a]
             [asimov.xmlrpc :as x]
             [asimov.tcpros :as tcpros]
             [asimov.util :as util]
@@ -10,9 +11,8 @@
   (let [n (atom {:name name
                  :client {:host "192.168.56.1"}
                  :master {:host master-url :port master-port}
-                 :topics #{}
-                 :msg-defs {}
-                 :srv-defs {}
+                 :pub {}
+                 :sub {}
                  :hosts {}
                  :tcp-server nil
                  :xml-server nil})]
@@ -29,21 +29,19 @@
              #(or ((:hosts node) %)
                   %)))
 
-(defn subscribe! [node topic]
-  (let [node @node
-        node-name (:name node)
-        master-url (util/to-http-addr (:master node))
-        node-url (util/to-http-addr (assoc (:client node)
-                                      :port
-                                      (get-in node [:xml-server :port])))
-        msg-id (get-in (x/get-topic-types master-url node-name)
-                       [:topic-types topic])
+(defn sub! [node msg-def topic]
+  (let [n @node
+        node-name (:name n)
+        msg-id (msgs/serialize-id msg-def)
+        master-url (util/serialize-addr (:master n))
+        node-url (util/serialize-addr (merge (:client n)
+                                             (:xml-server n)))
         {providers :provider-urls}
         (x/register-subscriber master-url
                                node-name topic msg-id node-url)
         provider (-> providers
                      first
-                     util/deserialize-addr
+                     util/parse-addr
                      (lookup-host node)
                      util/serialize-addr)
         ;;todo subscribe to all providers
@@ -51,43 +49,42 @@
                  (x/request-topic node-name
                                   topic
                                   [["TCPROS"]])
-                 (lookup-host node))
-        msg (get-in node [:msg-defs (msgs/parse-id msg-id)])]
-    (tcpros/subscribe! addr node-name topic msg)))
+                 (lookup-host node))]
+    (tcpros/subscribe! addr node-name topic msg-def)))
 
-(defn publish! [node topic msg-id]
-  (let [node @node
-        msg (get-in node [:msg-defs (msgs/parse-id msg-id)])
-        node-name (:name node)
-        master-url (util/serialize-addr (:master node))
-        node-url (util/serialize-addr (:client node))
-        topic-map {topic {:msg-def msg
-                          :connections #{}}}]
-    (swap! node assoc
-           :topics topic-map
-           :conf {:pedantic? false})
-    (let [res (asimov.tcpros/listen! node)]
-      (x/register-publisher master-url node-name topic msg-id node-url)
-      res)))
+(defn pub! [node msg-def topic]
+  (let [n @node
+        node-name (:name n)
+        msg-id (msgs/serialize-id msg-def)
+        master-url (util/serialize-addr (:master n))
+        node-url (util/serialize-addr (merge (:client n)
+                                             (:tcp-server n)))
+        c (a/chan (a/sliding-buffer 1))]
+    (swap! node assoc-in
+           [:pub topic]
+           {:chan c
+            :msg-def msg-def
+            :connections #{}
+            :pedantic? false})
+    (x/register-publisher master-url node-name topic msg-id node-url)
+    c))
 
-(defn add-msgs!
-  ([node path]
-     (let [new-msgs (->> path
-                         clojure.java.io/file
-                         msgs/msgs-in-dir)]
-       (swap! node update-in [:msg-defs]
-              #(->> new-msgs
-                    (merge %)
-                    msgs/annotate-all))))
-  ([node id raw]
+(defn msg
+  ([id raw]
+     (msg {} id raw))
+  ([msgs id raw]
      (let [msg (msgs/parse-id id)]
-       (swap! node update-in [:msg-defs]
-              #(->> {msg
-                     (assoc msg :raw raw)}
-                    (merge %)
-                    msgs/annotate-all))
-       node)))
+       (->> {msg
+             (assoc msg :raw raw)}
+            (merge msgs)
+            msgs/annotate-all))))
 
-(defn add-srvs!
-  ([node path] (throw (ex-info "Not implemented.")))
-  ([node package name raw] (throw (ex-info "Not implemented."))))
+(defn msgs
+  ([path]
+     (msgs {} path))
+  ([msgs path]
+     (->> path
+          clojure.java.io/file
+          msgs/msgs-in-dir
+          (merge msgs)
+          msgs/annotate-all)))

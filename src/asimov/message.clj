@@ -368,3 +368,7 @@
 (defn parse-id [id]
   (let [[_ package name] (re-matches #"([^/]*)/([^/]*)" id)]
        {:package package :name name}))
+
+(defn serialize-id [id]
+  (let [{:keys [package name]} id]
+       (str package "/" name)))
