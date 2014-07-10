@@ -59,10 +59,12 @@
         master-url (util/serialize-addr (:master n))
         node-url (util/serialize-addr (merge (:client n)
                                              (:xml-server n)))
-        c (a/chan (a/sliding-buffer 1))]
+        c (a/chan (a/sliding-buffer 1))
+        m (a/mult c)]
     (swap! node assoc-in
            [:pub topic]
            {:chan c
+            :mult m
             :msg-def msg-def
             :connections #{}
             :pedantic? false})

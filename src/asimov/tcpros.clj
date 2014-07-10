@@ -45,7 +45,7 @@
 (defn handler-fn[node]
   (fn [ch> client-info]
     (future
-      (t/trace "Incomming onnection:" client-info)
+      (t/trace "Incomming connection:" client-info)
       (let [n @node
             [ch< inh] (decode-header (l/mapcat* f/bytes->byte-buffers ch>))
             inh @inh
@@ -84,7 +84,9 @@
              (t/trace client-info ":Will add new connection.")
              (swap! node update-in
                     [:pub (:topic inh) :connections]
-                    conj {:client client-info :chan ch}))))))))
+                    conj {:client client-info
+                          :chan ch})
+             (as/tap (:mult topic) ch))))))))
 
 (defn rand-port []
   (+ (rand-int (- 65535 49152)) 49152))
