@@ -7,13 +7,13 @@
             [asimov.message :as msgs]
             [taoensso.timbre :as t]))
 
-(defn init-node! [master-url master-port name]
+(defn init-node! [master-url master-port hosts name]
   (let [n (atom {:name name
                  :client {:host "192.168.56.1"}
                  :master {:host master-url :port master-port}
                  :pub {}
                  :sub {}
-                 :hosts {}
+                 :hosts hosts
                  :tcp-server nil
                  :xml-server nil})]
     (swap! n assoc
@@ -29,7 +29,7 @@
              #(or ((:hosts node) %)
                   %)))
 
-(defn sub! [node msg-def topic]
+(defn sub! [node msg-def topic] ;TODO: check pedantic?
   (let [n @node
         node-name (:name n)
         msg-id (msgs/serialize-id msg-def)
@@ -39,18 +39,31 @@
         {providers :provider-urls}
         (x/register-subscriber master-url
                                node-name topic msg-id node-url)
-        provider (-> providers
-                     first
-                     util/parse-addr
-                     (lookup-host node)
-                     util/serialize-addr)
-        ;;todo subscribe to all providers
-        addr (-> provider
-                 (x/request-topic node-name
-                                  topic
-                                  [["TCPROS"]])
-                 (lookup-host node))]
-    (tcpros/subscribe! addr node-name topic msg-def)))
+        c (a/chan (a/sliding-buffer 1))
+        m (a/mix c)
+        connections
+        (for [p providers
+                :let [provider (-> p
+                                   util/parse-addr
+                                   (lookup-host n)
+                                   util/serialize-addr)
+                      addr (-> provider
+                               (x/request-topic node-name
+                                                topic
+                                                [["TCPROS"]])
+                               (lookup-host n))
+                      chan (tcpros/subscribe! addr node-name topic msg-def)]]
+          {:server (select-keys addr [:protocol :port :host])
+           :chan chan})]
+    (doseq [c connections] (a/admix m (:chan c)))
+    (swap! node assoc-in
+           [:sub topic]
+           {:chan c
+            :mult m
+            :msg-def msg-def
+            :connections (into #{} connections)
+            :pedantic? false})
+    c))
 
 (defn pub! [node msg-def topic]
   (let [n @node

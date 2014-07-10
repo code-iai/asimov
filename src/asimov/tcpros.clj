@@ -40,7 +40,15 @@
                                    :topic topic
                                    :md5sum (:md5 msg-def)
                                    :type (msg/serialize-id msg-def)}))
-    (i/decode-channel ch< (:frame msg-def))))
+    (let [chan (as/chan)
+          ch (i/decode-channel ch< (:frame msg-def))]
+      (as/go-loop []
+        (if-let [msg (try @(l/read-channel ch)
+                          (catch IllegalStateException e nil))]
+          (do (as/>! chan msg)
+              (recur))
+          (as/close! chan)))
+      chan)))
 
 (defn handler-fn[node]
   (fn [ch> client-info]
