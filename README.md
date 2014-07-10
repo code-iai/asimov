@@ -1,14 +1,16 @@
 # asimov
 
-A Clojure library designed to ... well, that part is up to you.
+A clojure library for the RobotOperatingSystem.
 
-## Usage
+## Example
 
-FIXME
-
-## License
-
-Copyright © 2014 FIXME
-
-Distributed under the Eclipse Public License either version 1.0 or (at
-your option) any later version.
+    (alter-var-root #'*out* (constantly *out*))
+    (use 'asimov.api)
+    (use 'clojure.core.async)
+    (def m (msgs "resources"))
+    (def n (init-node! "192.168.56.101" 11311 {"lisp-tutorial" "192.168.56.101"} "/asimov"))
+    (def out (pub! n (m {:package "turtlesim" :name "Velocity"}) "/turtle1/command_velocity"))
+    (def in (sub! n (m {:package "turtlesim" :name "Velocity"}) "/turtle1/command_velocity"))
+    (take! in println)
+    (put! out {:angular 2 :linear 2})
+    >>> {:angular 2.0, :linear 2.0} ;Because we subscribed to ourselves, we as well as the turtle get the topics messages.
