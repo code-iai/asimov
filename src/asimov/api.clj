@@ -9,7 +9,7 @@
 
 (defn init-node! [master-url client-url master-port hosts name]
   (let [n (atom {:name name
-                 :client {:host cluent-url}
+                 :client {:host client-url}
                  :master {:host master-url :port master-port}
                  :pub {}
                  :sub {}
