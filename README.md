@@ -8,7 +8,7 @@ A clojure library for the RobotOperatingSystem.
     (use 'asimov.api)
     (use 'clojure.core.async)
     (def m (msgs "resources"))
-    (def n (init-node! "192.168.56.101" 11311 {"lisp-tutorial" "192.168.56.101"} "/asimov"))
+    (def n (init-node! "192.168.56.101" "192.168.56.1" 11311 {"lisp-tutorial" "192.168.56.101"} "/asimov"))
     (def out (pub! n (m {:package "turtlesim" :name "Velocity"}) "/turtle1/command_velocity"))
     (def in (sub! n (m {:package "turtlesim" :name "Velocity"}) "/turtle1/command_velocity"))
     (take! in println)

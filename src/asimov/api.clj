@@ -7,9 +7,9 @@
             [asimov.message :as msgs]
             [taoensso.timbre :as t]))
 
-(defn init-node! [master-url master-port hosts name]
+(defn init-node! [master-url client-url master-port hosts name]
   (let [n (atom {:name name
-                 :client {:host "192.168.56.1"}
+                 :client {:host cluent-url}
                  :master {:host master-url :port master-port}
                  :pub {}
                  :sub {}
