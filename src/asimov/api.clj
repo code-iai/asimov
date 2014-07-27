@@ -24,7 +24,7 @@ Expects:
 
 Returns an atom storing all the connections state.
 Which can then be used to publish and subscribe to topics."
-  [client-host master-host master-port hosts name]
+  [name client-host master-host master-port hosts]
   (let [n (atom {:name name
                  :client {:host client-host}
                  :master {:host master-host :port master-port}
@@ -74,7 +74,7 @@ This channel will also be stored on the node atom."
         {providers :provider-urls}
         (x/register-subscriber master-url
                                node-name topic msg-id node-url)
-        c (a/chan (a/sliding-buffer 1))
+        c (a/chan (a/sliding-buffer 1024)) ;TODO: Make buffer size configurable.
         m (a/mix c)
         connections
         (for [p providers
@@ -117,7 +117,7 @@ This channel will also be stored on the node atom."
         master-url (util/serialize-addr (:master n))
         node-url (util/serialize-addr (merge (:client n)
                                              (:xml-server n)))
-        c (a/chan (a/sliding-buffer 1))
+        c (a/chan (a/sliding-buffer 1024)) ;TODO: Make buffer size configurable.
         m (a/mult c)]
     (swap! node assoc-in
            [:pub topic]
