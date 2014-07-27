@@ -59,7 +59,10 @@
                          :expected '~re, :actual m#})))
             e#))))
 
-(defn bytes-to-buffer [bs]
+(defn bytes-to-buffer
+  "Takes a textual representation of bytes, written in hex grouped by 2 digits,
+and returns a bytebuffer with those bytes."
+  [bs]
   (let [bytes (->> (clojure.string/split bs #"\s+")
                    (map (fn [s] (unchecked-byte (Integer/parseInt s 16))))
                    byte-array
@@ -67,7 +70,8 @@
     bytes))
 
 (defn serialize-addr
-  "expects [host port] and returns \"http://<host>:<port>\""
+  "Expects a map with with :host and :port
+and returns a string of the form  \"http://<host>:<port>\""
   [addr]
   (str (URL. (or (:protocol addr) "http")
              (:host addr)
@@ -75,6 +79,8 @@
              "")))
 
 (defn parse-addr
+  "Expects a string of the form \"http://<host>:<port>\"
+and returns a map with :host and :port."
   [addr]
   (let [url (io/as-url addr)]
     {:protocol (.getProtocol url)
