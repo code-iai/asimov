@@ -23,7 +23,7 @@ Add the following dependency to your project.clj file:
 [![Current Version](https://clojars.org/asimov/latest-version.svg)](https://clojars.org/asimov)
 
 ##Resources
-[API reference](http://ticking.github.com/asimov/doc)
+[API reference](http://code-iai.github.io/asimov/doc/)
 ## Example
 First let's load the library and core.async.
 
