@@ -46,20 +46,38 @@
   (insta/parser message-grammar))
 
 (defn primitive-type
-  "Tags the given type as primitive and turns it into a keyword."
+"Instaparse leaf transformer for primitive type token.
+
+Expects:
+ name:string the name of the type.
+
+Returns a map with the keyworized version of the type (:name) as well as a tag
+that marks it as a primitive (:tag)."
   [name]
   {:tag :primitive
    :name (keyword name)})
 
 (defn literal
-  "Tags the given type as primitive and turns it into a keyword."
+  "Generates an instaparse leaf transformer for literal value tokens.
+
+Expects:
+ f:fn A parsing function to be applied to the literals.
+
+Returns a function that takes a literal and returns a map
+containing it in its raw form (:raw) as well as the value
+created by parsing it with the provided function (:read)."
   [f]
   (fn [raw]
     {:raw raw
      :read (f raw)}))
 
 (defn transform-parse
-  "Transforms the parse tree of a message into a workable list of declarations."
+"Instaparse tree transformer to be used on message declaration parsing results.
+
+Expects:
+ parse-tree: instaparse-tree The parse three to be transformed.
+
+Returns a workable list of declarations."
   [parse-res]
   (insta/transform
    {:S vector
@@ -100,10 +118,18 @@
    parse-res))
 
 (defn make-packages-explicit
-  "Takes all declarations that contain a
-  message reference without an explicit
-  package name and associates the provided
-  package name with them."
+  "Compiler step that makes implicit package references in a
+ros message definition explicit.
+For \"Header\" messages the package is \"std_msgs\".
+For all other message references without an explicit package
+the package the message was declared in will be choosen.
+
+
+Expects:
+ package:string The name of the package the message was declared in.
+ declarations:vector The declarations of the message definition.
+
+Returns the given declarations where every message reference is explicit."
   [package declarations]
   (mapv (fn [d]
           (if (= :message (-> d :type :tag))
@@ -117,8 +143,16 @@
         declarations))
 
 (defn check-errors
-  "Thows an exception when the message definitions parse
-contains any errors."
+"Compiler step that checks for parsing errors.
+
+Expects:
+ msg:string The raw unparsed message used for error reporting.
+ p:instaparse-parse The parsed version of the message,
+   potentially containing errors.
+
+Returns the parsed message when parsing was successful.
+
+Thows an exception when the message definitions parse contains any errors."
   [msg p]
   (if (insta/failure? p)
     (do (t/error "Could not parse message!\n" (insta/get-failure p))
@@ -126,8 +160,15 @@ contains any errors."
     p))
 
 (defn declarations
-  "Parses the given message and returns a
-  list of its declarations."
+"A compiler step for turning the raw message definition into separate declarations.
+To be used with `annotate`.
+
+Expects
+ msg:map The message definition map consisting of a package name (:package)
+         and the raw message declaration (:raw).
+ msgs:map The entire message map to be compiled.
+
+Returns a vector of the message definitions declarations."
   [{:keys [package raw] :as msg} msgs]
   (->> raw
        msg-parser
@@ -136,7 +177,14 @@ contains any errors."
        (make-packages-explicit package)))
 
 (defn dependencies
-  "Annotates the set of other messages required by this message."
+"A compiler step for extracting a messages dependencies from its declarations.
+To be used with `annotate`.
+
+Expects
+ msg:map The message definition map consisting of a collection of declarations (:declarations).
+ msgs:map The entire message map to be compiled.
+
+Returns a vector of the messages depencencies in the order they appeared."
   [msg msgs]
   (->> msg
        :declarations

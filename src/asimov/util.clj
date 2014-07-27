@@ -6,8 +6,14 @@
            java.net.URL))
 
 (defn cycles
-  "Detects and returns cycles in dependency graphs.
-  Code adapted from Cris Grangers https://www.refheap.com/20384"
+"Detects and returns cycles in dependency graphs.
+Code borrowed adapted from Cris Grangers https://www.refheap.com/20384
+
+Expects:
+ graph:map The graph encoded as a map where each key is a node
+           and each value is a set of children.
+
+Returns a set of vectors that contain the cyclic paths of nodes."
   [graph]
   (letfn [(find-cycles
             [cur {:keys [seen root stack graph] :as state}]
@@ -60,8 +66,13 @@
             e#))))
 
 (defn bytes-to-buffer
-  "Takes a textual representation of bytes, written in hex grouped by 2 digits,
-and returns a bytebuffer with those bytes."
+"Makes debugging byte fiddling code easier by conveniently generating bytebuffers.
+
+Expects:
+ bs:string A textual representation of bytes, written in hex grouped by 2 digits.
+
+
+Returns a bytebuffer with the encoded bytes."
   [bs]
   (let [bytes (->> (clojure.string/split bs #"\s+")
                    (map (fn [s] (unchecked-byte (Integer/parseInt s 16))))
@@ -70,8 +81,13 @@ and returns a bytebuffer with those bytes."
     bytes))
 
 (defn serialize-addr
-  "Expects a map with with :host and :port
-and returns a string of the form  \"http://<host>:<port>\""
+"Makes working with urls easier by representing them as clojure maps.
+Inverse function of `parse-addr`.
+
+Expects:
+ addr:map Contains :host and :port entries.
+
+Returns a string of the form  \"http://<host>:<port>\""
   [addr]
   (str (URL. (or (:protocol addr) "http")
              (:host addr)
@@ -79,8 +95,13 @@ and returns a string of the form  \"http://<host>:<port>\""
              "")))
 
 (defn parse-addr
-  "Expects a string of the form \"http://<host>:<port>\"
-and returns a map with :host and :port."
+"Makes working with urls easier by representing them as clojure maps.
+Inverse function of `serialize-addr`.
+
+Expects:
+ addr:string Of the form  \"http://<host>:<port>\"
+
+Returns a map with :host and :port."
   [addr]
   (let [url (io/as-url addr)]
     {:protocol (.getProtocol url)

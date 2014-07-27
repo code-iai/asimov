@@ -9,7 +9,8 @@
     [handler :refer [api]]]
    [necessary-evil.core :as xml-rpc]))
 
-(defn gen-return-map [code status-message]
+(defn gen-return-map
+  [code status-message]
   {:success? (if (= 1 code) true false)
    :status-code code
    :status-message status-message})
@@ -47,14 +48,24 @@
        (-> (gen-return-map code message)
            (assoc :topic-types (into {} topic-types))))))
 
-(defn unimpl [& methods]
+(defn unimpl
+"Used for stubbing out unimplemented xml-rpc requests.
+
+Expects:
+ methods:&keyword The methods to be stubbed out.
+
+Returns a map of callbacks which will signal that
+an unimplemented handler has been called when executed."
+  [& methods]
   (into {}
         (for [m methods]
           [m (fn [& args]
                (t/log "Noop " m " with " args)
                true)])))
 
-(defn handler-fn [node]
+(defn- handler-fn
+"Handler used by the http-server to handle xml-rpc requests by the ros master and other nodes."
+  [node]
   (xml-rpc/end-point
    (merge {:requestTopic (fn [& args]
                            (let [n @node]
@@ -73,7 +84,14 @@
            :publisherUpdate))))
 
 
-(defn listen! [node]
+(defn listen!
+"Starts a http server for communication with the master and other nodes.
+
+Expects:
+ node:atom The node that communicates through the server and stores all state.
+
+Returns a map containing the http server instance (:server) as well as its port (:port)."
+  [node]
   (let [s (run-jetty (handler-fn node) {:port 0 :join? false})
         p (-> s
               .getConnectors

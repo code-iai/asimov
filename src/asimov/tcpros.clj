@@ -17,20 +17,44 @@
                                                (g/string :ascii)])
                               :prefix :none)))
 
-(defn encode-header [h]
+(defn encode-header
+  "Encodes a tcpros header map for sending over a connection.
+
+Expects:
+ h:map The tcpros header map containing arbitary keys and values.
+
+Returns the header in binary encoded form where the contents are simply turned into strings."
+  [h]
   (->> h
        (map (fn [[k v]] [(name k) v]))
        (into [])
        (i/encode header-frame)))
 
-(defn decode-header [ch]
+(defn decode-header
+  "Decodes the tcpros header of a connection.
+
+Expects:
+ ch:channel An aleph channel of the connections bytestream.
+
+Returns a vector of a future containing the parsed tcpros header as a map
+and a channel containing the undecoded rest of the provided channel."
+  [ch]
   (let [ch* (i/decode-channel-headers ch header-frame)
         h (l/read-channel ch*)]
     [ch* (future (->> @h
                       (map (fn [[k v]] [(keyword k) v]))
                       (into {})))]))
 
-(defn subscribe! [addr callerid topic msg-def]
+(defn subscribe! ;TODO: check pedantic flag and act accordingly.
+"Establishes a subscribing tcpros connection with another node.
+
+Expects:
+ addr:map The address map describing the node to be connected to.
+ callerid:string A string identifying the connecting node.
+ topic:string The name of the topic to be subscribed to.
+
+Returns a channel delivering messages from the node connected to."
+  [addr callerid topic msg-def]
   (let [ch> (->> (select-keys addr [:host :port])
                  a/tcp-client
                  l/wait-for-result)
@@ -50,7 +74,15 @@
           (as/close! chan)))
       chan)))
 
-(defn handler-fn[node]
+(defn handler-fn
+  "Returns a handler function that accepts and establishes
+ publishing tcpros connections with other nodes.
+
+Expects:
+ node:atom The node the incomming connections should be connected to.
+
+Returns the handler function to be used with an aleph tcp server."
+  [node]
   (fn [ch> client-info]
     (future
       (t/trace "Incomming connection:" client-info)
@@ -96,12 +128,24 @@
                           :chan ch})
              (as/tap (:mult topic) ch))))))))
 
-(defn rand-port []
+(defn rand-port
+"Returns a random port in the ephemeral port range."
+  []
   (+ (rand-int (- 65535 49152)) 49152))
 
-(defn listen! [node]
+(defn listen!
+  "Starts an aleph tcp server on a random port that waits for
+incomming subscription to topics of the provided node.
+
+Expects:
+ node:atom the node incomming connections are registered on.
+
+Returns a map containing a function to stop the server as well as the randomly choosen port.
+
+Throws an exception if no free port can be found after 1000 retries."
+  [node]
   (let [handler (handler-fn node)
-        ports (take 1000 (distinct (repeatedly rand-port)))
+        ports (take 1000 (distinct (repeatedly rand-port))) ;TODO: Make retries configurable.
         server (some #(try
                         {:server (a/start-tcp-server handler {:port %})
                          :port %}
