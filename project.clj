@@ -1,9 +1,8 @@
 (defproject asimov "0.1.0-SNAPSHOT"
-  :jvm-opts ["-XX:-OmitStackTraceInFastThrow"]
-  :description "FIXME: write description"
-  :url "http://example.com/FIXME"
-  :license {:name "Eclipse Public License"
-            :url "http://www.eclipse.org/legal/epl-v10.html"}
+  :description "A clojure client library for the robot operating system ROS."
+  :url "https://github.com/code-iai/asimov"
+  :license {:name "The MIT License"
+            :url "http://opensource.org/licenses/mit-license.php"}
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.clojure/core.async "0.1.303.0-886421-alpha"]
                  [org.clojure/core.match "0.2.1"]
@@ -22,4 +21,6 @@
                  [instaparse "1.3.2"]
                  [ring/ring-jetty-adapter "1.3.0"]
                  [slingshot "0.10.3"]]
-  :plugins [[codox "0.8.10"]])
+  :plugins [[codox "0.8.10"]]
+  :codox {:src-dir-uri "http://github.com/code-iai/asimov/blob/master/"
+          :src-linenum-anchor-prefix "L"})

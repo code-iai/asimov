@@ -20,10 +20,10 @@ requiring only message definitions to work with an existing ROS system.
 ##Installation
 Add the following dependency to your project.clj file:
 
-    [asimov "0.1.0"]
+[![Current Version](https://clojars.org/asimov/latest-version.svg)](https://clojars.org/asimov)
 
 ##Resources
-[API reference](http://raynes.github.com/laser/docs)
+[API reference](http://ticking.github.com/asimov/doc)
 ## Example
 First let's load the library and core.async.
 
@@ -65,3 +65,5 @@ And write a simple message to it.
  The turtle will move and we will print the following message.
  
     >>> {:angular 2.0, :linear 2.0}
+
+    
