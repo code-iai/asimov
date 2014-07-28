@@ -1,8 +1,0 @@
-# Define the goal
-duration timeout
----
-# Define the result
-bool dock
----
-# Define a feedback message
-string feedback
