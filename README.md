@@ -40,7 +40,7 @@ address of the computer (or VM) containing the ros master and 11311 is the defau
 
 Note that  can start an arbitrary number of ROS nodes on a given machine or in one repl. They can even connect to different masters.
 
-    (def n (ros/init-node! "/asimov" "192.168.56.101" "192.168.56.1" 11311 {"lisp-tutorial" "192.168.56.101"} ))
+    (def n (ros/init-node! "/asimov" "192.168.56.1" "192.168.56.101" 11311 {"lisp-tutorial" "192.168.56.101"} ))
 
 We then publish a topic from the node that we just created.
 This returns a core.async channel that we can read messages from.
