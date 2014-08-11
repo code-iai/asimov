@@ -60,7 +60,7 @@ We can then start a go block to read and print a single value from the topic.
 
 And write a simple message to it.
 
-    (put! out {:angular 2 :linear 2})
+    (a/put! out {:angular 2 :linear 2})
 
  The turtle will move and we will print the following message.
  
