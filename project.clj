@@ -1,4 +1,4 @@
-(defproject asimov "0.1.1"
+(defproject asimov "0.1.1-SNAPSHOT"
   :description "A clojure client library for the robot operating system ROS."
   :url "https://github.com/code-iai/asimov"
   :license {:name "The MIT License"
@@ -22,5 +22,6 @@
                  [ring/ring-jetty-adapter "1.3.0"]
                  [slingshot "0.10.3"]]
   :plugins [[codox "0.8.10"]]
+  :aot [asimov.api]
   :codox {:src-dir-uri "http://github.com/code-iai/asimov/blob/master/"
           :src-linenum-anchor-prefix "L"})
