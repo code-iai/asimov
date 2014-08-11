@@ -5,7 +5,8 @@
             [asimov.tcpros :as tcpros]
             [asimov.util :as util]
             [asimov.message :as msgs]
-            [taoensso.timbre :as t]))
+            [taoensso.timbre :as t])
+  (:gen-class))
 
 (defn init-node!
 "Starts a new ros node.
