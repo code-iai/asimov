@@ -12,6 +12,7 @@ Returns a sequence strings which denote the directories of the dependencies."
   (map rospack-find (rospack-depends package)))
 
 (defn- rospack
+  "Returns result of rospack when called with 'args'. Throws an exception if rospack returns an error. "
   [& args]
   (let [{:keys [exit out err]} (apply sh/sh "rospack" args)]
     (if (not= 0 exit)
