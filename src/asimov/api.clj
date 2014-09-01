@@ -177,11 +177,12 @@ Expects:
  dir:string The directory from which the messages are to be loaded.
 
 Returns the given message definition map with the new messages added to it."
-  ([dir]
-     (msgs {} dir))
-  ([msgs dir]
-     (->> dir
-          clojure.java.io/file
-          msgs/msgs-in-dir
-          (merge msgs)
+  ([dirs]
+     (msgs {} dirs))
+  ([msgs dirs]
+     (->> dirs
+          (map #(-> %
+                    clojure.java.io/file
+                    msgs/msgs-in-dir))
+          (apply merge msgs)
           msgs/annotate-all)))
