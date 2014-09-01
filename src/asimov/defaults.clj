@@ -11,17 +11,15 @@
          default-host)
 
 (defn default-master-host []
-  "192.168.254.133"
-  #_(-> (re-find #"http://([^:]*):([1-9]*)"
+  (-> (re-find #"http://([^:]*):([1-9]*)"
                (System/getenv "ROS_MASTER_URI"))
       second))
 
 (defn default-master-port []
-  11311
-  #_(-> (re-find #"http://([^:]*):([1-9]*)"
+  (-> (re-find #"http://([^:]*):([1-9]*)"
                (System/getenv "ROS_MASTER_URI"))
-        (nth 2)
-        Integer/parseInt))
+      (nth 2)
+      Integer/parseInt))
 
 
 (defn default-hosts []
