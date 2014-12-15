@@ -161,7 +161,7 @@ Returns the given message definition map with the new message added to it."
             msgs/annotate-all))))
 
 (defn msgs
-  "Loads all the message definitions contained in the given directory.
+  "Loads all the message definitions contained in the given directories.
 Message definitions may be stored at arbitrary depth as long as they follow
 the ros `package_name/msgs/msg_name.msg` path convention.
 When loading message definitions for which the id already exists,
@@ -174,7 +174,7 @@ Expects:
  msgs:map The messages already loaded.
           It has to contain the dependencies of this message definition.
           Defaults to the empty map.
- dir:string The directory from which the messages are to be loaded.
+ dirs:[string] The directories from which the messages are to be loaded.
 
 Returns the given message definition map with the new messages added to it."
   ([dirs]
