@@ -27,10 +27,10 @@ Expects:
 Returns an atom storing all the connections state.
 Which can then be used to publish and subscribe to topics."
   [name & {:keys [client-host master-host master-port hosts]
-           :or {client-host (dflts/default-client-host)
-                master-host (dflts/default-master-host)
-                master-port (dflts/default-master-port)
-                hosts (dflts/default-hosts)}}]
+           :or {client-host dflts/default-client-host
+                master-host dflts/default-master-host
+                master-port dflts/default-master-port
+                hosts dflts/default-hosts}}]
   (let [n (atom {:name name
                  :client {:host client-host}
                  :master {:host master-host :port master-port}

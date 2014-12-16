@@ -370,8 +370,8 @@ Returns the provided message map where each message definition is annotated with
    msgs
    vals
    (mapcat (fn [msg] (tree-seq #(not-empty (:dependencies %))
-                              #(map msgs (:dependencies %))
-                              msg)))
+                               #(map msgs (:dependencies %))
+                               msg)))
    reverse
    distinct
    (reduce (fn [msgs msg]
@@ -416,7 +416,7 @@ Expects:
  msgs:map The entire message map to be compiled.
  k:keyword The key the new intermediary result is to be associated with.
  f:fn The transformation function to be applied to each message definition.
- 
+
 Returns the message map where each message definition map has been passed to
 the provided function. The result is then associated to it under the given key."
   [msgs k f]
