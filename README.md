@@ -45,11 +45,11 @@ address of the computer (or VM) containing the ros master and 11311 is the defau
 Note that  can start an arbitrary number of ROS nodes on a given machine or in one repl. They can even connect to different masters.
 
 ```clojure
-(def n (ros/init-node! "/asimov" ;Node name.
-                       "192.168.56.1" ;Client ip address.
-                       "192.168.56.101" ;Master ip address.
-                       11311 ;Master port.
-                       {"lisp-tutorial" "192.168.56.101"})) ;Hosts map.
+(def n (ros/init-node! "/asimov"
+                       :client-host "192.168.56.1"
+                       :master-host "192.168.56.101"
+                       :master-port 11311
+                       :hosts {"lisp-tutorial" "192.168.56.101"}))
 ```
 
 We then publish a topic from the node that we just created.
