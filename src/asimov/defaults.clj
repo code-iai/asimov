@@ -2,7 +2,7 @@
   (:require [clojure.java.shell :as sh]))
 
 
-(defn default-client-host
+(def default-client-host
   (System/getenv "ROS_IP"))
 
 (def default-master-host
