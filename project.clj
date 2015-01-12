@@ -1,4 +1,4 @@
-(defproject asimov "0.1.1-SNAPSHOT"
+(defproject asimov "0.1.2"
   :description "A clojure client library for the robot operating system ROS."
   :url "https://github.com/code-iai/asimov"
   :license {:name "The MIT License"
