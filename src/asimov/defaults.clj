@@ -6,7 +6,7 @@
   (System/getenv "ROS_IP"))
 
 (def default-master-host
-  (some->
+  (some->>
     "ROS_MASTER_URI"
     System/getenv
     (re-matches #"http://([^:]*):[0-9]*")
