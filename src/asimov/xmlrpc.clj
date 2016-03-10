@@ -48,6 +48,14 @@
        (-> (gen-return-map code message)
            (assoc :topic-types (into {} topic-types))))))
 
+(defn get-param
+  [master-url node-name param-name]
+  (let [[code message param-value]
+        (xml-rpc/call master-url :getParam
+                      node-name param-name)]
+    (-> (gen-return-map code message)
+        (assoc :param-value param-value))))
+
 (defn unimpl
 "Used for stubbing out unimplemented xml-rpc requests.
 
