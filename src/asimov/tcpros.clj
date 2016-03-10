@@ -3,7 +3,7 @@
             [clojure.set :as set]
             [lamina.core :as l]
             [aleph.tcp   :as a]
-            [aleph.formats :as f]
+            [byte-streams :as b]
             [gloss.core  :as g]
             [gloss.io    :as i]
             [taoensso.timbre :as t]
@@ -56,9 +56,9 @@ Expects:
 Returns a channel delivering messages from the node connected to."
   [addr callerid topic msg-def]
   (let [ch> (->> (select-keys addr [:host :port])
-                 a/tcp-client
+                 a/client
                  l/wait-for-result)
-        [ch< inh] (decode-header (l/mapcat* f/bytes->byte-buffers ch>))]
+        [ch< inh] (decode-header (l/mapcat* b/to-byte-buffer ch>))]
     (l/enqueue ch> (encode-header {:message_definition (:cat msg-def)
                                    :callerid callerid
                                    :topic topic
@@ -87,7 +87,7 @@ Returns the handler function to be used with an aleph tcp server."
     (future
       (t/trace "Incomming connection:" client-info)
       (let [n @node
-            [ch< inh] (decode-header (l/mapcat* f/bytes->byte-buffers ch>))
+            [ch< inh] (decode-header (l/mapcat* b/to-byte-buffer ch>))
             inh @inh
             reply! #(l/enqueue ch> (encode-header %))
             reply-error! (fn [e]
@@ -147,7 +147,7 @@ Throws an exception if no free port can be found after 1000 retries."
   (let [handler (handler-fn node)
         ports (take 1000 (distinct (repeatedly rand-port))) ;TODO: Make retries configurable.
         server (some #(try
-                        {:server (a/start-tcp-server handler {:port %})
+                        {:server (a/start-server handler {:port %})
                          :port %}
                         (catch org.jboss.netty.channel.ChannelException e
                           (t/log :info "caught exception: " e)))

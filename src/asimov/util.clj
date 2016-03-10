@@ -1,6 +1,5 @@
 (ns asimov.util
   (:require [clojure.test :refer :all]
-            [byte-streams :as b]
             [clojure.java.io :as io])
   (:import java.nio.ByteBuffer
            java.net.URL))
