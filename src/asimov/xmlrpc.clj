@@ -1,8 +1,7 @@
 (ns asimov.xmlrpc
   (:require
-   [lamina.core :refer :all]
    [ring.adapter.jetty :refer :all]
-   [aleph.http :refer :all]
+   [aleph.http :refer :all :exclude [get]]
    [taoensso.timbre :as t]
    [compojure
     [core :as compojure :refer [defroutes GET POST ANY]]
@@ -68,7 +67,7 @@ an unimplemented handler has been called when executed."
   (into {}
         (for [m methods]
           [m (fn [& args]
-               (t/log "Noop " m " with " args)
+               (t/log :info "Noop " m " with " args)
                true)])))
 
 (defn- handler-fn

@@ -1,4 +1,5 @@
 (ns asimov.message
+  (:refer-clojure :exclude [cat])
   (:require [clojure.set :as set]
             [clojure.core.match :refer [match]]
             [clojure.algo.generic.functor :refer [fmap]]
