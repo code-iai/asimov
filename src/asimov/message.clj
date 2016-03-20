@@ -479,9 +479,7 @@ Returns a gloss frame to encode and decode the given declaration."
           :type {:tag :primitive
                  :name t}}
          [(keyword n)
-          (g/finite-frame :uint32-le
-                          (g/repeated (primitive-frame t)
-                                      :prefix :none))]
+          (g/repeated (primitive-frame t) :prefix :uint32-le)]
          {:tag :variable
           :name n
           :type {:tag :message
@@ -505,10 +503,9 @@ Returns a gloss frame to encode and decode the given declaration."
                  :name t
                  :package p}}
          [(keyword n)
-          (g/finite-frame :uint32-le
-                          (g/repeated (message-frame (msgs {:package p :name t})
-                                                     msgs)
-                                      :prefix :none))]))
+          (g/repeated (message-frame (msgs {:package p :name t})
+                                     msgs)
+                      :prefix :uint32-le)]))
 
 (defn message-frame
 "Each message definition has to be turned into a serializer and deserializer

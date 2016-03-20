@@ -119,7 +119,7 @@ Expects:
 Returns a channel delivering messages from the node connected to."
   [addr callerid topic msg-def]
   (let [ds (a/client (select-keys addr [:host :port]))
-        s  @(d/chain ds wrap-decode-stream-header);]
+        s  @(d/chain ds wrap-decode-stream-header)
         inh (decode-header s)]
     (t/trace "Send message definition: " (:cat msg-def))
     @(s/put! s (encode-header {:message_definition (:cat msg-def)
@@ -127,8 +127,7 @@ Returns a channel delivering messages from the node connected to."
                                :topic topic
                                :md5sum (:md5 msg-def)
                                :type (msg/serialize-id msg-def)}))
-    (let [ ;inh  @(decode-header s)
-          chan (as/chan)
+    (let [chan (as/chan)
           s*   (i/decode-stream s (:frame msg-def))]
       (t/trace "Received Header: " @inh)
       (t/trace "Will start go loop.")
