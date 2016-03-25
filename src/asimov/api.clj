@@ -5,8 +5,7 @@
             [asimov.tcpros :as tcpros]
             [asimov.util :as util]
             [asimov.message :as msgs]
-            [asimov.defaults :as dflts]
-            [taoensso.timbre :as t])
+            [asimov.defaults :as dflts])
   (:gen-class))
 
 (defn init-node!

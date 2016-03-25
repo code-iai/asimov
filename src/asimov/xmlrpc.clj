@@ -1,8 +1,7 @@
 (ns asimov.xmlrpc
   (:require
-   [lamina.core :refer :all]
    [ring.adapter.jetty :refer :all]
-   [aleph.http :refer :all]
+   [aleph.http :refer :all :exclude [get]]
    [taoensso.timbre :as t]
    [compojure
     [core :as compojure :refer [defroutes GET POST ANY]]
@@ -48,6 +47,14 @@
        (-> (gen-return-map code message)
            (assoc :topic-types (into {} topic-types))))))
 
+(defn get-param
+  [master-url node-name param-name]
+  (let [[code message param-value]
+        (xml-rpc/call master-url :getParam
+                      node-name param-name)]
+    (-> (gen-return-map code message)
+        (assoc :param-value param-value))))
+
 (defn unimpl
 "Used for stubbing out unimplemented xml-rpc requests.
 
@@ -60,7 +67,7 @@ an unimplemented handler has been called when executed."
   (into {}
         (for [m methods]
           [m (fn [& args]
-               (t/log "Noop " m " with " args)
+               (t/log :info "Noop " m " with " args)
                true)])))
 
 (defn- handler-fn

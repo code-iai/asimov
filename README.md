@@ -36,7 +36,7 @@ We then load the messages required for communicating with the ROS turtle simulat
 so we ask asimov to load all message definitons contained within it.
 
 ```clojure
-(def m (ros/msgs "resources"))
+(def m (ros/msgs ["resources"]))
 ```
 
 We than start a ROS node from the repl. In this case "/asimov" is the name of the node we give to the master,"192.168.56.101" is our own IP address in the same network as the ROS master,  "192.168.56.1" is the
